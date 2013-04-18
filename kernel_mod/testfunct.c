@@ -3,5 +3,5 @@
 
 void testlogfunct(void)
 {
-	printk(KERN_INFO "This is from a second .c file\n");
+	printk(KERN_INFO "TODO: implement netlink interface for pushing syscall logs to usermode application\n");
 }

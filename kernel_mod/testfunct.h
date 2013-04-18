@@ -1,6 +1,6 @@
 #ifndef testfunct_h
 #define testfunct_h
 
-void testlogfunct(void);
+extern void testlogfunct(void);
 
 #endif
