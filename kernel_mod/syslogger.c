@@ -6,7 +6,8 @@
 #include "testfunct.h"
 
 //Pointer to the syscall table
-unsigned long **sys_call_table;
+//unsigned long **sys_call_table;
+void **sys_call_table;
 
 //Pointer to the mkdir syscall implementation
 long (*ref_sys_mkdir)(const char __user *pathname, int mode);
@@ -16,19 +17,19 @@ long (new_sys_mkdir)(const char __user *pathname, int mode)
 {
 	long retval;
 	retval = ref_sys_mkdir(pathname, mode);
-	printk(KERN_INFO "hook: [pid: %i ppid: %i] mkdir(%s, %i) = %ld\n", current->parent->pid, current->parent->parent->pid, pathname, mode, retval);
+	printk(KERN_INFO "hook: [pid: %i ppid: %i] mkdir(%s, %i) = %ld\n", current->pid, current->parent->pid, pathname, mode, retval);
 	return retval;
 }
 
 //From the start of kernel address space, look for the beginning of the sys_call function-pointer table
-static unsigned long **acquire_sys_call_table(void)
+static void **acquire_sys_call_table(void)
 {
 	unsigned long int offset = PAGE_OFFSET;
-	unsigned long **sct;
+	void **sct;
 
 	while (offset < ULLONG_MAX)
 	{
-		sct = (unsigned long **)offset;
+		sct = (void **)offset;
 
 		if (sct[__NR_close] == (unsigned long *) sys_close)
 		{
