@@ -3,35 +3,49 @@ Param(
 	[string]$Outfile
 )
 
-function Strip-Arguments
+#$funct is in format "<type> <functname>(<argtype> [argname], <argtype> [argname]);"
+function Get-Arguments
 {
 	Param(
 		[string]$funct
 	)
+
 	
 	$retval = ""
+
+	#Obtain the substring of the function containing the arguments (without braces)
 	$arguments = $funct.SubString($funct.IndexOf("(") + 1, $funct.IndexOf(")") - $funct.IndexOf("(") - 1)
 	
+	#Create an array of all arguments by splitting the argument string on the comma
 	$arglist = $arguments.Split(",")
 	
-	foreach($arg in $arglist)
+	#For each argument
+	for($i = 0; $i -lt $arglist.Length; $i++)
 	{
-		if ($arg -eq "void")
+		#If it's void and nothing else, it indicates that no argument should be passed. Immediately break the argument parsing loop
+		if ($arglist[$i] -eq "void")
 		{
 			break
 		}
 		
-		$components = $arg.Split(" ")
+		#Break the argument segments up by splitting on the spaces
+		$components = $arglist[$i].Split(" ")
+
 		$argname = $components[$components.Length - 1]
 		if ($argname -ne "*")
 		{
 			$argname = $argname.Replace("*", "")
 		}
+
+		if ($argname -eq "")
+		{
+			$argname = "arg$i"
+		}
 		$retval += "$argname, "
 	}
 	if ($retval -ne "")
 	{
-		$retval = $retval.SubString(0, $retval.Length-2)
+		$retval = $retval.SubString(0, $retval.Length - 2)
 	}
 	return $retval
 }
