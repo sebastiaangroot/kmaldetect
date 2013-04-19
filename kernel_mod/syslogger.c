@@ -6,8 +6,7 @@
 #include "testfunct.h"
 
 //Pointer to the syscall table
-//unsigned long **sys_call_table;
-void **sys_call_table;
+unsigned long **sys_call_table;
 
 //Pointer to the mkdir syscall implementation
 long (*ref_sys_mkdir)(const char __user *pathname, int mode);
@@ -22,14 +21,14 @@ long (new_sys_mkdir)(const char __user *pathname, int mode)
 }
 
 //From the start of kernel address space, look for the beginning of the sys_call function-pointer table
-static void **acquire_sys_call_table(void)
+static unsigned long **acquire_sys_call_table(void)
 {
 	unsigned long int offset = PAGE_OFFSET;
-	void **sct;
+	unsigned long **sct;
 
 	while (offset < ULLONG_MAX)
 	{
-		sct = (void **)offset;
+		sct = (unsigned long **)offset;
 
 		if (sct[__NR_close] == (unsigned long *) sys_close)
 		{
