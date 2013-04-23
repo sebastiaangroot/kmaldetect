@@ -1,46 +1,13 @@
-#include <linux/module.h>
-#include <linux/kernel.h>
-#include <linux/unistd.h>
-#include <asm/syscall.h>
-#include <linux/syscalls.h>
-#include "testfunct.h"
-
-//Pointer to the syscall table
 unsigned long **sys_call_table;
 
 extern long sys_mkdir(const char __user *pathname, int mode);
-
-//Pointer to the mkdir syscall implementation
 long (*ref_sys_mkdir)(const char __user *pathname, int mode);
-
-//Hooked mkdir implementation
 long (new_sys_mkdir)(const char __user *pathname, int mode)
 {
 	long retval;
 	retval = ref_sys_mkdir(pathname, mode);
 	printk(KERN_INFO "hook: [pid: %i ppid: %i] mkdir(%s, %i) = %ld\n", current->pid, current->parent->pid, pathname, mode, retval);
 	return retval;
-}
-
-//From the start of kernel address space, look for the beginning of the sys_call function-pointer table
-static unsigned long **acquire_sys_call_table(void)
-{
-	unsigned long int offset = PAGE_OFFSET;
-	unsigned long **sct;
-
-	while (offset < ULLONG_MAX)
-	{
-		sct = (unsigned long **)offset;
-
-		if (sct[__NR_close] == (unsigned long *) sys_close)
-		{
-			return sct;
-		}
-
-		offset += sizeof(void *);
-	}
-	printk(KERN_INFO "Getting syscall table failed.\n");
-	return NULL;
 }
 
 //Check if the cr0 write-protect bit is set. If not, page write-protection is already disabled. If so, bitwise-AND bit 16 to zero and set it to cr0
@@ -88,6 +55,20 @@ static int __init mod_start(void)
 	
 	enable_page_protection();
 	return 0;
+}
+
+static void unregister_hooks(unsigned long **sys_call_table)
+{
+	if (!sys_call_table)
+	{
+		return;
+	}
+
+	disable_page_protection();
+
+
+
+	enable_page_protection();
 }
 
 static void __exit mod_end(void)
