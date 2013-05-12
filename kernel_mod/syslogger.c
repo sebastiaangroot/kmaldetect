@@ -8,20 +8,6 @@
 //Pointer to the syscall table
 unsigned long **sys_call_table;
 
-extern long sys_mkdir(const char __user *pathname, int mode);
-
-//Pointer to the mkdir syscall implementation
-long (*ref_sys_mkdir)(const char __user *pathname, int mode);
-
-//Hooked mkdir implementation
-long (new_sys_mkdir)(const char __user *pathname, int mode)
-{
-	long retval;
-	retval = ref_sys_mkdir(pathname, mode);
-	printk(KERN_INFO "hook: [pid: %i ppid: %i] mkdir(%s, %i) = %ld\n", current->pid, current->parent->pid, pathname, mode, retval);
-	return retval;
-}
-
 //From the start of kernel address space, look for the beginning of the sys_call function-pointer table
 static unsigned long **acquire_sys_call_table(void)
 {
@@ -72,9 +58,7 @@ static void enable_page_protection(void)
 
 static int __init mod_start(void)
 {
-	printk(KERN_INFO "mkdirlogger loaded\n");
-
-	testlogfunct();
+	printk(KERN_INFO "syscall_logger loaded\n");
 
 	if(!(sys_call_table = acquire_sys_call_table()))
 	{
@@ -83,8 +67,7 @@ static int __init mod_start(void)
 
 	disable_page_protection();
 
-	ref_sys_mkdir = &sys_mkdir;//(void *)sys_call_table[__NR_mkdir];
-	sys_call_table[__NR_mkdir] = (unsigned long *)new_sys_mkdir;
+	reg_hooks(sys_call_table);
 	
 	enable_page_protection();
 	return 0;
@@ -101,7 +84,7 @@ static void __exit mod_end(void)
 
 	disable_page_protection();
 	
-	sys_call_table[__NR_mkdir] = (unsigned long *)ref_sys_mkdir;
+	unreg_hooks(sys_call_table);
 	
 	enable_page_protection();
 }

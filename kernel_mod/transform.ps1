@@ -107,8 +107,94 @@ function Get-FunctionName
 	return ($preargs + $argstring + $postargs)
 }
 
+function Add-Headers
+{
+	Param(
+		[string]$Outfile
+	)
+	
+	"#include <linux/kernel.h>" | Out-File -FilePath $Outfile -Append -Force
+	"#include <linux/syscalls.h>" | Out-File -FilePath $Outfile -Append -Force
+	"#include <linux/unistd.h>" | Out-File -FilePath $Outfile -Append -Force
+	"" | Out-File -FilePath $Outfile -Append -Force
+}
+
+function Add-Refs
+{
+	Param(
+		[string[]]$content,
+		[string]$Outfile
+	)
+
+	foreach ($line in $content)
+	{
+		if (-NOT ($line.Contains("long hook_")))
+		{
+			continue
+		}
+		
+		$type = "extern " + $line.SubString(0, 4)
+		$functname = $line.Substring(5, $line.IndexOf("(") - 5)
+		$arguments = $line.Substring($line.IndexOf("("))
+		$functname = $functname.Replace("hook_", "")
+		$outstring = $type + " " + $functname + $arguments + ";"
+		$outstring | Out-File -FilePath $Outfile -Append -Force
+	}	
+}
+
+function Add-RegFunction
+{
+	Param(
+		[string[]]$content,
+		[string]$Outfile
+	)
+	
+	"void reg_hooks(unsigned long **sys_call_table)" | Out-File -FilePath $Outfile -Append -Force
+	"{" | Out-File -FilePath $Outfile -Append -Force
+	foreach($line in $content)
+	{
+		if (-NOT ($line.Contains("long hook_")))
+		{
+			continue
+		}
+		
+		$functname = $line.Substring(5, $line.IndexOf("(") - 5)
+		$syscallname = $functname.Replace("hook_sys_", "")
+		
+		"	sys_call_table[__NR_$syscallname] = (unsigned long *)$functname" | Out-File -FilePath $Outfile -Append -Force
+	}
+	 "}"| Out-File -FilePath $Outfile -Append -Force
+}
+
+function Add-UnRegFunction
+{
+	Param(
+		[string[]]$content,
+		[string]$Outfile
+	)
+	
+	"void unreg_hooks(unsigned long **sys_call_table)" | Out-File -FilePath $Outfile -Append -Force
+	"{" | Out-File -FilePath $Outfile -Append -Force
+	foreach($line in $content)
+	{
+		if (-NOT ($line.Contains("long hook_")))
+		{
+			continue
+		}
+		
+		$refname = $line.Substring(5, $line.IndexOf("(") - 5)
+		$refname = $refname.Replace("hook_", "")
+		$syscallname = $refname.Replace("sys_", "")
+		
+		"	sys_call_table[__NR_$syscallname] = (unsigned long *)$refname" | Out-File -FilePath $Outfile -Append -Force
+	}
+	 "}"| Out-File -FilePath $Outfile -Append -Force
+}
+
 $content = Get-Content -Path $Infile
 New-Item -Path $Outfile -ItemType file -Force
+Add-Headers -Outfile $Outfile
+Add-Refs -content $content -Outfile $Outfile
 $count = 1
 $total = $content.Length
 foreach($line in $content)
@@ -120,7 +206,7 @@ foreach($line in $content)
 		$functname = Get-FunctionName -funct $line.Clone()
 		
 		$refname = $line.Clone()
-		$refname = $refname.Replace("hook_", "real_")
+		$refname = $refname.Replace("hook_", "")
 		$refname = $refname.SubString(5, $refname.IndexOf('(')-5)
 		
 		$functpass = "long retval = "
@@ -132,9 +218,12 @@ foreach($line in $content)
 		$functname | Out-File -FilePath $Outfile -Append -Force
 		"{" | Out-File -FilePath $Outfile -Append -Force
 		"	$functpass" | Out-File -FilePath $Outfile -Append -Force
-		"	//Logger here" | Out-File -FilePath $Outfile -Append -Force
+		"	printk(KERN_INFO `"hook: [pid: %i ppid: %i] $refname = %ld\n`", current->pid, current->parent->pid, retval);" | Out-File -FilePath $Outfile -Append -Force
 		"	return retval;" | Out-File -FilePath $Outfile -Append -Force
 		"}" | Out-File -FilePath $Outfile -Append -Force
 		"" | Out-File -FilePath $Outfile -Append -Force
 	}
 }
+
+Add-RegFunction -content $content -Outfile $Outfile
+Add-UnRegFunction -content $content -Outfile $Outfile

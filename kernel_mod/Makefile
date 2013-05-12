@@ -1,5 +1,5 @@
-obj-m := mkdirlogger.o
-mkdirlogger-objs := syslogger.o testfunct.o
+obj-m := syscalllogger.o
+syscalllogger-objs := syslogger.o hooks.o
 
 all:
 	make -C /lib/modules/$(shell uname -r)/build M=$(PWD) modules
