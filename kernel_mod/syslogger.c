@@ -3,7 +3,7 @@
 #include <linux/unistd.h>
 #include <asm/syscall.h>
 #include <linux/syscalls.h>
-#include "testfunct.h"
+#include "hooks.h"
 
 //Pointer to the syscall table
 unsigned long **sys_call_table;
