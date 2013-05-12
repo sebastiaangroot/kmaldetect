@@ -1,0 +1,4 @@
+-Communication channel between kernel- and userspace (kernel- and userspace netlink interfaces)
+-Syscall monitor for all syscalls (write mass register and unregister functions of syscall hooks)
+-Elementary parser (only based on syscalls or back-and-forth between a syscall and argument transition matrix)
+-Userspace logger to report output
