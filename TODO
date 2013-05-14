@@ -1,4 +1,25 @@
--Communication channel between kernel- and userspace (kernel- and userspace netlink interfaces)
--Syscall monitor for all syscalls (write mass register and unregister functions of syscall hooks)
--Elementary parser (only based on syscalls or back-and-forth between a syscall and argument transition matrix)
--Userspace logger to report output
+-Communication channel between kernel- and userspace
+	-Kernel netlink sending interface
+	-Userlevel netlink listening interface
+-Syscall monitor for all syscalls
+	-Hooks generation script
+	-Hook functions (including neccesary metadata)
+	-Register and unregister functions
+-Detection application
+	-Systemcall DFA (transition matrix)
+	-Updating state encoding table (which states on the DFA should I follow to update this encoding table, given input syscall x)
+	-End state table (given input syscall x, is one of the states we'll reach according to the updating state encoding table an end state?)
+	-Event logging
+		-On system call that matches our state table:
+			-update our state table according to the DFA
+			-Store system call metadata
+		-On end state:
+			-Mark possible syscalls with this end state (maybe a struct for this end state containing references to the relevant metadata for fast lookup)
+	-Detect mode
+		-Search through all possible permutations of the possible system call sequences that took part in a particular end state to look for repeats that have matching metadata
+		-If a hit is found, report it to the user
+-Testing samples
+	-Single process malware
+	-Strace of its execution
+	-DFA based on its strace
+	-Transition matrix based on its DFA
