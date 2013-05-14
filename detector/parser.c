@@ -16,7 +16,7 @@ int branches[NUM_SYSCALLS];
  * Temporary init function. The transition matrix will be loaded according to file-provided signatures
  * This temporary transition matrix simply loops every input to the next state (with the exception of state 0)
  * */
-int init_transition_matrix(void)
+void init_transition_matrix(void)
 {
 	int i, j;
 	for (i = 0; i < NUM_STATES; i++)
@@ -44,7 +44,7 @@ int init_transition_matrix(void)
 /*
  * Fill the syscall_encoding_table according to our transition matrix and set the branches array to one for each system call
  * */
-int init_parser(void)
+void init_parser(void)
 {
 	int i;
 	for (i = 0; i < NUM_SYSCALLS; i++)
@@ -56,36 +56,42 @@ int init_parser(void)
 	init_transition_matrix();
 }
 
-int update_syscall_encoding_table(int id, int state)
+/*
+ * Each time a syscall points us to a new state, this function is called to update our syscall_encoding_table to account for the newly reached state
+ * */
+void update_syscall_encoding_table(int state)
 {
-	int i;
+	int i, j;
+	int duplicate;
 
-	//Step 1: If syscall_encoding_table[id][0] == 0, we can replace this default state
-	if (syscall_encoding_table[id][0] == 0)
+	//For each system call
+	for (i = 0; i < NUM_SYSCALLS; i++)
 	{
-		syscall_encoding_table[id][0] = state;
-		return 1;
-	}
-
-	//Step 2: Check if the to-be-added state is already present
-	for (i = 0; i < branches[id]; i++)
-	{
-		if (syscall_encoding_table[id][i] == state)
+		//Is there even room for more system calls for this spot on our encoding table?
+		//Is the branch we're examining here zero (i.e. no transition)?
+		if (branches[i] >= MAX_COMPLEXITY || transition_table[state][i] == 0)
 		{
-			return 1;
+			continue;
+		}
+
+		//Check if we've already defined the transition in our syscall_encoding_table
+		duplicate = 0;
+		for (j = 0; j < branches[i]; j++)
+		{
+			if (transition_matrix[state][i] == syscall_encoding_table[i][j])
+			{
+				duplicate = 1;
+				break;
+			}
+		}
+		
+		//This is a new transition, so define it and increment the number of branches for this syscall
+		if (!duplicate)
+		{
+			syscall_encoding_table[i][branches[i]] = transition_matrix[state][i];
+			branches[i]++;
 		}
 	}
-
-	//Step 3: Check if we're not about to overflow the syscall_encoding_table
-	if (branches[id] >= MAX_BRANCHES)
-	{
-		return 0;
-	}
-
-	//Step 4: Add the state to the syscall_encoding_table and increment the branches array
-	syscall_encoding_table[id][branches[id]] = state;
-	branches[id]++;
-	return 1;
 }
 
 int handle_input(struct raw_syscall input)
@@ -97,7 +103,11 @@ int handle_input(struct raw_syscall input)
 	{
 		if ((state = syscall_encoding_table[input.id][i]) != 0)
 		{
-			update_syscall_encoding_table(input.id, state);
+			update_syscall_encoding_table(state);
+			if (is_endstate(state))
+			{
+				
+			}
 		}
 	}
 
