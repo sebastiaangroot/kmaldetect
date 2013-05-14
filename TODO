@@ -7,7 +7,7 @@ xCommunication channel between kernel- and userspace
 	xUserlevel netlink listening interface
 -Syscall monitor for all syscalls
 	-Hooks generation script
-	xHook functions (including neccesary metadata)
+	-Hook functions (including neccesary metadata)
 	-Register and unregister functions
 xDetection application
 	xSystemcall DFA (transition matrix)
