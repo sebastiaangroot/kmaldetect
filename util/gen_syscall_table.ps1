@@ -10,7 +10,7 @@ New-Item -Path $Outfile -ItemType file -Force
 $sys_index = 0
 "function get_syscall_index" | Out-File -FilePath $Outfile -Append -Force
 "{" | Out-File -FilePath $Outfile -Append -Force
-"	case `$sys_name in `$1" | Out-File -FilePath $Outfile -Append -Force
+"	case `$1 in" | Out-File -FilePath $Outfile -Append -Force
 foreach ($line in $content)
 {
 	if ($line.StartsWith("#define __NR_"))
@@ -25,6 +25,7 @@ foreach ($line in $content)
 			"		'" + $line_substr.Substring(0, $line_substr.IndexOf(" ")) + "')" | Out-File -FilePath $Outfile -Append -Force
 		}
 		"			return $sys_index" | Out-File -FilePath $Outfile -Append -Force
+		"			;;" | Out-File -FilePath $Outfile -Append -Force
 		$sys_index++
 	}
 }
