@@ -1,10 +1,12 @@
+#include <stdio.h>
+
 #define TM_COMPLEXITY 20
 #define TM_NUM_ENDSTATES 5
 #define TM_NUM_STATES 15
 
 #define NUM_SYSCALLS 330
 #define NUM_STATES TM_NUM_STATES
-#define MAX_COMPLEXITY TM_BRANCH_COMPLEXITY
+#define MAX_COMPLEXITY TM_COMPLEXITY
 #define NUM_ENDSTATES TM_NUM_ENDSTATES
 
 int transition_matrix[NUM_STATES][NUM_SYSCALLS];
@@ -23,7 +25,7 @@ void init_transition_matrix(void)
 	{
 		for (j = 0; j < NUM_SYSCALLS; j++)
 		{
-			if (i == 0)
+			if (i == 0 || i == NUM_STATES - 1)
 			{
 				transition_matrix[i][j] = i;
 			}
@@ -47,13 +49,14 @@ void init_transition_matrix(void)
 void init_parser(void)
 {
 	int i;
+
+	init_transition_matrix();
 	for (i = 0; i < NUM_SYSCALLS; i++)
 	{
 		//The syscall_encoding_table starts at state 1
-		syscall_encoding_table[i] = transition_matrix[1][i];
+		syscall_encoding_table[i][0] = transition_matrix[1][i];
 		branches[i] = 1;
 	}
-	init_transition_matrix();
 }
 
 /*
@@ -69,7 +72,7 @@ void update_syscall_encoding_table(int state)
 	{
 		//Is there even room for more system calls for this spot on our encoding table?
 		//Is the branch we're examining here zero (i.e. no transition)?
-		if (branches[i] >= MAX_COMPLEXITY || transition_table[state][i] == 0)
+		if (branches[i] >= MAX_COMPLEXITY || transition_matrix[state][i] == 0)
 		{
 			continue;
 		}
@@ -94,24 +97,42 @@ void update_syscall_encoding_table(int state)
 	}
 }
 
-int handle_input(struct raw_syscall input)
+int handle_input(int sys_id)
 {
-	int i;
+	int i, branch_lim, state;
 	
 	//Step 1: Follow the syscall_encoding_table
-	for (i = 0; i < branches[input.id]; i++)
+	branch_lim = branches[sys_id];
+	for (i = 0; i < branch_lim; i++)
 	{
-		if ((state = syscall_encoding_table[input.id][i]) != 0)
+		if ((state = syscall_encoding_table[sys_id][i]) != 0)
 		{
+			
+			fprintf(stderr, "handle_input(%i) i=%i, branches[%i]=%i, state=%i\n", sys_id, i, sys_id, branches[sys_id], state);
 			update_syscall_encoding_table(state);
-			if (is_endstate(state))
-			{
-				
-			}
+
+			//if (is_endstate(state))
+			//{
+			//	
+			//}
 		}
 	}
-
-	//Step 2: Check for end-states
-	
+	return 0;
 }
 
+void debug_print(void)
+{
+	int i, j;
+	for (i = 0; i < NUM_SYSCALLS; i++)
+	{
+		printf("[SYS_%i] { ", i);
+		for (j = 0; j < branches[i]; j++)
+		{
+			if (j < branches[i] - 1)
+				printf("%i, ", syscall_encoding_table[i][j]);
+			else
+				printf("%i", syscall_encoding_table[i][j]);
+		}
+		printf(" }\n");
+	}
+}
