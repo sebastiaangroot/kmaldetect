@@ -1,4 +1,5 @@
 #!/bin/bash
+#This script is prepared to create signatures for a 2.6.32-358.6.1.el6.x86_64 linux kernel using the 64-bit unistd.h asm header
 
 function usage
 {
@@ -993,13 +994,21 @@ done
 #Generate the strace, strip everything but the syscall name and recode the syscall names to a sequence of syscall numbers
 strace $STRACE_ARGS 2> $OUTFILE.strace
 cat $OUTFILE.strace | cut -d "(" -f 1 > $OUTFILE.tmp
-rm $OUTFILE.strace
 
 SYSCALLS=(`cat $OUTFILE.tmp`)
 
 for (( i=0; i < ${#SYSCALLS[@]}; i++))
 do
-	echo `get_syscall_index ${SYSCALLS[$i]}`
+	get_syscall_index ${SYSCALLS[$i]}
+	ANS=$?
+	if [ -z $SYS_NUMSEQ ]
+	then
+		SYS_NUMSEQ="$ANS"
+	else
+		SYS_NUMSEQ="$SYS_NUMSEQ,$ANS"
+	fi
 done
 
+echo $SYS_NUMSEQ > $OUTFILE
 
+rm -f $OUTFILE.strace $OUTFILE.tmp
