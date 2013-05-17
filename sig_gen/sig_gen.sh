@@ -952,7 +952,7 @@ function get_syscall_index
 OUTFILE=
 STRACE_ARGS=
 SYSCALLS=
-SYS_NUMSEQ=
+SYS_NUM_WRITTEN=0
 
 #Argument handling (required option -o <outfile> first, then all remaining arguments as input for strace)
 while getopts ":ho:" opt
@@ -1001,14 +1001,13 @@ for (( i=0; i < ${#SYSCALLS[@]}; i++))
 do
 	get_syscall_index ${SYSCALLS[$i]}
 	ANS=$?
-	if [ -z $SYS_NUMSEQ ]
+	if [ $SYS_NUM_WRITTEN -eq 0 ]
 	then
-		SYS_NUMSEQ="$ANS"
+		echo -n "$ANS" > $OUTFILE
+		SYS_NUM_WRITTEN=1
 	else
-		SYS_NUMSEQ="$SYS_NUMSEQ,$ANS"
+		echo -n ",$ANS" >> $OUTFILE
 	fi
 done
-
-echo $SYS_NUMSEQ > $OUTFILE
 
 rm -f $OUTFILE.strace $OUTFILE.tmp
