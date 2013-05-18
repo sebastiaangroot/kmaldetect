@@ -54,8 +54,8 @@ SIGNATURE * load_signature(char *filename)
 
 int main(int argc, char *argv[])
 {
-	int i;
-	SIGNATURE *testsig;
+	int i, len;
+	SIGNATURE *testsig, *testsig2;
 
 	testsig = load_signature(argv[1]);
 
