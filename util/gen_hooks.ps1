@@ -1,6 +1,7 @@
 Param(
 	[string]$InUnistd,
 	[string]$InSysGen,
+	[string]$InSysArchGen,
 	[string]$InSysArch,
 	[string]$Outfile
 )
@@ -71,7 +72,8 @@ function Get-Syscall-Functs-By-Name
 	Param(
 		[string[]]$syscallNames,
 		[string[]]$prototypesGeneric,
-		[string[]]$prototypesArch
+		[string[]]$prototypesArch,
+		[string[]]$prototypesArchGeneric
 	)
 	
 	$table = @()
@@ -86,6 +88,11 @@ function Get-Syscall-Functs-By-Name
 		if ($prot -eq $null)
 		{
 			$prot = Get-Syscall-Funct-By-Name -name $name -content $prototypesGeneric
+		}
+		
+		if ($prot -eq $null)
+		{
+			$prot = Get-Syscall-Funct-By-Name -name $name -content $prototypesArchGeneric
 		}
 		
 		if ($prot -ne $null)
@@ -281,7 +288,7 @@ function Add-RegFunctions
 }
 
 $SYSCALL_TABLE = Get-Syscall-Table -contentUnistd (Get-Content -Path $InUnistd)
-$PROTOTYPE_TABLE = Get-Syscall-Functs-By-Name -syscallNames $SYSCALL_TABLE -prototypesGeneric (Get-Content -Path $InSysGen) -prototypesArch (Get-Content -Path $InSysArch)
+$PROTOTYPE_TABLE = Get-Syscall-Functs-By-Name -syscallNames $SYSCALL_TABLE -prototypesGeneric (Get-Content -Path $InSysGen) -prototypesArch (Get-Content -Path $InSysArch) -prototypesArchGeneric (Get-Content -Path $InSysArchGen)
 New-Item -Path $Outfile -ItemType file -Force
 
 Add-Headers -Outfile $Outfile
