@@ -264,7 +264,7 @@ function Add-RegFunctions
 	foreach($syscallname in $syscallNames)
 	{
 		$functName = "(void *)hook_" + $syscallName		
-		"`tsys_call_table[__NR_$syscallName] = $functName" | Out-File -FilePath $Outfile -Append -Force
+		"`tsys_call_table[__NR_$syscallName] = $functName;" | Out-File -FilePath $Outfile -Append -Force
 	}
 	"}" | Out-File -FilePath $Outfile -Append -Force
 	"" | Out-File -FilePath $Outfile -Append -Force
@@ -274,7 +274,7 @@ function Add-RegFunctions
 	foreach($syscallname in $syscallNames)
 	{
 		$functName = "(void *)sys_" + $syscallName		
-		"`tsys_call_table[__NR_$syscallName] = $functName" | Out-File -FilePath $Outfile -Append -Force
+		"`tsys_call_table[__NR_$syscallName] = $functName;" | Out-File -FilePath $Outfile -Append -Force
 	}
 	"}" | Out-File -FilePath $Outfile -Append -Force
 	"" | Out-File -FilePath $Outfile -Append -Force
