@@ -60,7 +60,7 @@ function Get-Syscall-Funct-By-Name
 				} while (-NOT $content[$i].Contains(");"))
 			}
 			
-			return [string]($preargs + $argstring)
+			return [string]("extern " + $preargs + $argstring)
 		}
 	}
 
@@ -111,10 +111,10 @@ function Add-Headers
 	)
 	
 	"#include <linux/kernel.h>" | Out-File -FilePath $Outfile -Append -Force
-	"#include <linux/syscalls.h>" | Out-File -FilePath $Outfile -Append -Force
-	"#include <asm/syscalls.h>" | Out-File -FilePath $Outfile -Append -Force
+	#"#include <linux/syscalls.h>" | Out-File -FilePath $Outfile -Append -Force
+	#"#include <asm/syscalls.h>" | Out-File -FilePath $Outfile -Append -Force
 	"#include <asm/unistd.h>" | Out-File -FilePath $Outfile -Append -Force
-	"#include <asm-generic/syscalls.h>" | Out-File -FilePath $Outfile -Append -Force
+	#"#include <asm-generic/syscalls.h>" | Out-File -FilePath $Outfile -Append -Force
 	"" | Out-File -FilePath $Outfile -Append -Force
 }
 
