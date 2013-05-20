@@ -114,6 +114,7 @@ function Add-Headers
 	"#include <linux/syscalls.h>" | Out-File -FilePath $Outfile -Append -Force
 	"#include <asm/syscalls.h>" | Out-File -FilePath $Outfile -Append -Force
 	"#include <asm/unistd.h>" | Out-File -FilePath $Outfile -Append -Force
+	"#include <asm-generic/syscalls.h>" | Out-File -FilePath $Outfile -Append -Force
 	"" | Out-File -FilePath $Outfile -Append -Force
 }
 
