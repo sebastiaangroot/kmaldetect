@@ -1,6 +1,7 @@
 ﻿#include <linux/kernel.h>
 #include <linux/syscalls.h>
 #include <linux/unistd.h>
+#include <asm/unistd.h>
 
 extern long sys_time(time_t __user *tloc);
 extern long sys_stime(time_t __user *tptr);
@@ -1455,7 +1456,7 @@ long hook_sys_io_getevents(aio_context_t ctx_id, long min_nr, long nr, struct io
 	return retval;
 }
 
-long hook_sys_io_submit(aio_context_t arg0, long arg1, struct iocb __user *arg2)
+long hook_sys_io_submit(aio_context_t arg0, long arg1, struct iocb __user **arg2)
 {
 	long retval = sys_io_submit(arg0, arg1, arg2);
 	printk(KERN_INFO "hook: [pid: %i ppid: %i] sys_io_submit = %ld\n", current->pid, current->parent->pid, retval);

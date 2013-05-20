@@ -58,7 +58,7 @@ static void enable_page_protection(void)
 
 static int __init mod_start(void)
 {
-	printk(KERN_INFO "syscall_logger loaded\n");
+	maldetect_nl_init();
 
 	if(!(sys_call_table = acquire_sys_call_table()))
 	{
@@ -66,27 +66,27 @@ static int __init mod_start(void)
 	}
 
 	disable_page_protection();
-
 	reg_hooks(sys_call_table);
-	
 	enable_page_protection();
+
+	printk(KERN_INFO "[kmaldetect] Initiated\n");
 	return 0;
 }
 
 static void __exit mod_end(void)
 {
-	printk(KERN_INFO "mkdirlogger exiting\n");
-
 	if(!sys_call_table)
 	{
 		return;
 	}
 
 	disable_page_protection();
-	
 	unreg_hooks(sys_call_table);
-	
 	enable_page_protection();
+
+	maldetect_nl_close();
+
+	printk(KERN_INFO "[kmaldetect] Stopped\n");
 }
 
 module_init(mod_start);

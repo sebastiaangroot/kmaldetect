@@ -1,4 +1,4 @@
-obj-m := nettest.o
+obj-m := nl_iface.o
 
 all:
 	make -C /lib/modules/$(shell uname -r)/build M=$(PWD) modules

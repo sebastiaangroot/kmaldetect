@@ -2,28 +2,28 @@ x : Yet to do
 - : Basic implementation
 + : Done
 
-xCommunication channel between kernel- and userspace
-	xKernel netlink sending interface
-	xUserlevel netlink listening interface
++Communication channel between kernel- and userspace
+	+Kernel netlink sending interface
+	-Userlevel netlink listening interface
 -Syscall monitor for all syscalls
 	-Hooks generation script
 	-Hook functions (including neccesary metadata)
 	-Register and unregister functions
-xDetection application
-	xSystemcall DFA (transition matrix)
-	xUpdating state encoding table (which states on the DFA should I follow to update this encoding table, given input syscall x)
-	xEnd state table (given input syscall x, is one of the states we'll reach according to the updating state encoding table an end state?)
+-Detection application
+	-Systemcall DFA (transition matrix)
+	+Updating state encoding table (which states on the DFA should I follow to update this encoding table, given input syscall x)
+	-End state table (given input syscall x, is one of the states we'll reach according to the updating state encoding table an end state?)
 	xEvent logging
 		xOn system call that matches our state table:
-			xUpdate our state table according to the DFA
+			+Update our state table according to the DFA
 			xStore system call metadata
 		xOn end state:
 			xMark possible syscalls with this end state (maybe a struct for this end state containing references to the relevant metadata for fast lookup)
 	xDetect mode
 		xSearch through all possible permutations of the possible system call sequences that took part in a particular end state to look for repeats that have matching metadata
 		xIf a hit is found, report it to the user
-xTesting Samples
+-Testing Samples
 	xSingle process malware
-	xStrace of its execution
-	xDFA based on its strace
+	-Strace of its execution
+	-DFA based on its strace
 	xTransition matrix based on its DFA
