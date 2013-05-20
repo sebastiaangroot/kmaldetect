@@ -60,7 +60,7 @@ function Get-Syscall-Funct-By-Name
 				} while (-NOT $content[$i].Contains(");"))
 			}
 			
-			return [string]("extern " + $preargs + $argstring)
+			return [string]($preargs + $argstring)
 		}
 	}
 
@@ -293,6 +293,9 @@ $PROTOTYPE_TABLE = Get-Syscall-Functs-By-Name -syscallNames $SYSCALL_TABLE -prot
 New-Item -Path $Outfile -ItemType file -Force
 
 Add-Headers -Outfile $Outfile
-$PROTOTYPE_TABLE | Out-File -FilePath $Outfile -Append -Force
+foreach ($item in $PROTOTYPE_TABLE)
+{
+	"extern " + $item | Out-File -FilePath $Outfile -Append -Force
+}
 Add-Hooks -Prototypes $PROTOTYPE_TABLE -Outfile $Outfile
 Add-RegFunctions -syscallNames $SYSCALL_TABLE -Outfile $Outfile
