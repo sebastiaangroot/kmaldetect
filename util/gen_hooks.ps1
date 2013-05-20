@@ -45,7 +45,7 @@ function Get-Syscall-Funct-By-Name
 	
 	for ($i = 0; $i -lt $content.Length; $i++)
 	{
-		if ($content[$i].Contains($name) -AND $content[$i].Contains("asmlinkage long"))
+		if ($content[$i].Contains($name + "(") -AND $content[$i].Contains("asmlinkage long"))
 		{
 			$preargs = $content[$i].Substring(11, $content[$i].IndexOf("(") - 11)
 			
@@ -148,6 +148,10 @@ function Get-Arguments-Names-Only
 		{
 			$arglist += "arg$i"
 		}
+		elseif ($components[$components.Length - 1].EndsWith("_t"))
+		{
+			$arglist += "arg$i"
+		}
 		else
 		{
 			$arglist += $components[$components.Length - 1].Replace("*", "")
@@ -201,6 +205,10 @@ function Get-Arguments
 			$arglist += ($args[$i] + " arg$i")
 		}
 		elseif ($components[$components.Length - 1].StartsWith("__"))
+		{
+			$arglist += ($args[$i] + " arg$i")
+		}
+		elseif ($components[$components.Length - 1].EndsWith("_t"))
 		{
 			$arglist += ($args[$i] + " arg$i")
 		}
