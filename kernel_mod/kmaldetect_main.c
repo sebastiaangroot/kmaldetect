@@ -4,6 +4,7 @@
 #include <asm/syscall.h>
 #include <linux/syscalls.h>
 #include "hooks.h"
+#include "netlink/nl_iface.h"
 
 //Pointer to the syscall table
 unsigned long **sys_call_table;
