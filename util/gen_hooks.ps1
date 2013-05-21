@@ -271,6 +271,9 @@ function Add-RegFunctions
 	"{" | Out-File -FilePath $Outfile -Append -Force
 	foreach($syscallname in $syscallNames)
 	{
+		Write-Host $syscallname
+		$syscallname = $syscallname.Substring($syscallname.IndexOf("sys_") + 4)
+		$syscallname = $syscallname.Substring(0, $syscallname.IndexOf("("))
 		$functName = "(void *)hook_" + $syscallName		
 		"`tsys_call_table[__NR_$syscallName] = $functName;" | Out-File -FilePath $Outfile -Append -Force
 	}
@@ -281,6 +284,8 @@ function Add-RegFunctions
 	"{" | Out-File -FilePath $Outfile -Append -Force
 	foreach($syscallname in $syscallNames)
 	{
+		$syscallname = $syscallname.Substring($syscallname.IndexOf("sys_") + 4)
+		$syscallname = $syscallname.Substring(0, $syscallname.IndexOf("("))
 		$functName = "(void *)sys_" + $syscallName		
 		"`tsys_call_table[__NR_$syscallName] = $functName;" | Out-File -FilePath $Outfile -Append -Force
 	}
@@ -298,4 +303,4 @@ foreach ($item in $PROTOTYPE_TABLE)
 	"extern " + $item | Out-File -FilePath $Outfile -Append -Force
 }
 Add-Hooks -Prototypes $PROTOTYPE_TABLE -Outfile $Outfile
-Add-RegFunctions -syscallNames $SYSCALL_TABLE -Outfile $Outfile
+Add-RegFunctions -syscallNames $PROTOTYPE_TABLE -Outfile $Outfile
