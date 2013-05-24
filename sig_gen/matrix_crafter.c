@@ -72,7 +72,7 @@ int add_nullstate(void)
 	int *state_array = malcalloc(NUM_SYSCALLS, sizeof(int));
 	if (!transition_matrix)
 	{
-		transition_matrix = malcalloc(1, sizeof(int *));
+		transition_matrix = malmalloc(sizeof(int *));
 		state_n = 1;
 	}
 	else
