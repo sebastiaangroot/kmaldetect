@@ -4,10 +4,9 @@
 #include <asm/syscall.h>
 #include <linux/syscalls.h>
 #include "hooks.h"
-#include "netlink/nl_iface.h"
 
 //Pointer to the syscall table
-unsigned long **sys_call_table;
+static unsigned long **ref_sys_call_table;
 
 //From the start of kernel address space, look for the beginning of the sys_call function-pointer table
 static unsigned long **acquire_sys_call_table(void)
@@ -59,15 +58,13 @@ static void enable_page_protection(void)
 
 static int __init mod_start(void)
 {
-	maldetect_nl_init();
-
-	if(!(sys_call_table = acquire_sys_call_table()))
+	if(!(ref_sys_call_table = acquire_sys_call_table()))
 	{
 		return -1;
 	}
 
 	disable_page_protection();
-	reg_hooks(sys_call_table);
+	reg_hooks(ref_sys_call_table);
 	enable_page_protection();
 
 	printk(KERN_INFO "[kmaldetect] Initiated\n");
@@ -76,16 +73,14 @@ static int __init mod_start(void)
 
 static void __exit mod_end(void)
 {
-	if(!sys_call_table)
+	if(!ref_sys_call_table)
 	{
 		return;
 	}
 
 	disable_page_protection();
-	unreg_hooks(sys_call_table);
+	unreg_hooks(ref_sys_call_table);
 	enable_page_protection();
-
-	maldetect_nl_close();
 
 	printk(KERN_INFO "[kmaldetect] Stopped\n");
 }

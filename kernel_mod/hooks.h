@@ -1,7 +1,7 @@
-#ifndef HOOKS_H
-#define HOOKS_H
+#ifndef HOOKS_NEW_H
+#define HOOKS_NEW_H
 
-void reg_hooks(unsigned long **sys_call_table);
-void unreg_hooks(unsigned long **sys_call_table);
+void reg_hooks(unsigned long **syscall_table);
+void unreg_hooks(unsigned long **syscall_table);
 
 #endif

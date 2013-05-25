@@ -5,8 +5,12 @@
 #include <linux/netlink.h>
 #include "kmaldetect.h"
 
+#include <pwd.h>
+#include <sched.h>
+
 #define NETLINK_MALDETECT 24
 #define MAX_PAYLOAD 1024
+#define SYSACCOUNT	"maldetect"
 
 struct sockaddr_nl src_addr, dest_addr;
 struct nlmsghdr *nlh = NULL;
@@ -14,8 +18,52 @@ struct iovec iov;
 int sock_fd;
 struct msghdr msg;
 
+int set_rr_scheduler(void)
+{
+	struct sched_param param;
+	param.sched_priority = sched_get_priority_max(SCHED_RR);
+	if (sched_setscheduler(0, SCHED_RR, &param) != 0)
+	{
+		return -1;
+	}
+
+	return 0;
+}
+
+int drop_privileges(void)
+{
+	struct passwd *user_info = getpwnam(SYSACCOUNT);
+	if (setgid(user_info->pw_gid) != 0 || setuid(user_info->pw_uid) != 0)
+	{
+		return 0;
+	}
+
+	return 1;
+}
+
 int main(void)
 {
+	//Check if we're running as root
+	if (getuid() != 0)
+	{
+		fprintf(stderr, "This application needs to be run as root.\n");
+		exit(1);
+	}
+
+	//Set the scheduler to the soft-realtime round robin scheduler
+	if (set_rr_scheduler() != 0)
+	{
+		fprintf(stderr, "Failed to change the scheduler.\n");
+		exit(1);
+	}
+
+	//We only needed to be root to change the scheduler. Drop privileges
+	if (!drop_privileges())
+	{
+		fprintf(stderr, "Failed to drop privileges. Is system account \"%s\" available?\n", SYSACCOUNT);
+		exit(1);
+	}
+
 	int doonce = 0;
 	sock_fd = socket(AF_NETLINK, SOCK_DGRAM, NETLINK_MALDETECT);
 

@@ -1,5 +1,5 @@
 obj-m := kmaldetect.o
-kmaldetect-objs := kmaldetect_main.o hooks.o netlink/nl_iface.o
+kmaldetect-objs := kmaldetect_main.o hooks.o
 
 all:
 	make -C /lib/modules/$(shell uname -r)/build M=$(PWD) modules
