@@ -24,8 +24,7 @@ int maldetect_nl_send_syscall(SYSCALL data)
 		return 0;
 	}
 
-	//msg_size = sizeof(data);
-	msg_size = strlen("test");
+	msg_size = sizeof(data);
 	skb_out = nlmsg_new(msg_size, 0);
 	if (!skb_out)
 	{
@@ -34,8 +33,7 @@ int maldetect_nl_send_syscall(SYSCALL data)
 	}
 	nlh = nlmsg_put(skb_out, 0, 0, NLMSG_DONE, msg_size, 0);
 	NETLINK_CB(skb_out).dst_group = 0;
-	//memcpy(nlmsg_data(nlh), &data, msg_size);
-	strncpy(nlmsg_data(nlh), "test", msg_size);
+	memcpy(nlmsg_data(nlh), &data, msg_size);
 
 	mutex_lock(&maldetect_nl_mutex);
 	res = nlmsg_unicast(nl_sk, skb_out, userspace_pid);

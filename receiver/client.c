@@ -35,15 +35,15 @@ int drop_privileges(void)
 	struct passwd *user_info = getpwnam(SYSACCOUNT);
 	if (!user_info)
 	{
-		return 0;
+		return -1;
 	}
 
 	if (setgid(user_info->pw_gid) != 0 || setuid(user_info->pw_uid) != 0)
 	{
-		return 0;
+		return -1;
 	}
 
-	return 1;
+	return 0;
 }
 
 int main(void)
@@ -63,7 +63,7 @@ int main(void)
 	}
 
 	//We only needed to be root to change the scheduler. Drop privileges
-	if (!drop_privileges())
+	if (drop_privileges() != 0)
 	{
 		fprintf(stderr, "Failed to drop privileges. Is system account \"%s\" available?\n", SYSACCOUNT);
 		exit(1);
