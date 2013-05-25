@@ -33,6 +33,11 @@ int set_rr_scheduler(void)
 int drop_privileges(void)
 {
 	struct passwd *user_info = getpwnam(SYSACCOUNT);
+	if (!user_info)
+	{
+		return 0;
+	}
+
 	if (setgid(user_info->pw_gid) != 0 || setuid(user_info->pw_uid) != 0)
 	{
 		return 0;
