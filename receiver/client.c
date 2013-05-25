@@ -12,6 +12,11 @@
 #define MAX_PAYLOAD 1024
 #define SYSACCOUNT	"maldetect"
 
+typedef struct test_str
+{
+	int id;
+} TEST_STRUCT;
+
 struct sockaddr_nl src_addr, dest_addr;
 struct nlmsghdr *nlh = NULL;
 struct iovec iov;
@@ -107,9 +112,9 @@ int main(void)
 	while (1)
 	{
 		recvmsg(sock_fd, &msg, 0);
-		printf("Received message: %s\n", (char *)NLMSG_DATA(nlh));
 		if (!doonce)
 		{
+			printf("Received message: %s\n", (char *)NLMSG_DATA(nlh));
 			msg.msg_name = (void *)&dest_addr;
 			msg.msg_namelen = sizeof(dest_addr);
 			msg.msg_iov = &iov;
@@ -117,6 +122,13 @@ int main(void)
 			sendmsg(sock_fd, &msg, 0);
 			doonce = 1;
 		}
+		else
+		{
+			TEST_STRUCT *test = (TEST_STRUCT *)NLMSG_DATA(nlh);
+			printf("Received message: %i\n", test->id);
+		}
+
+		memset(NLMSG_DATA(nlh), 0, strlen((char*)NLMSG_DATA(nlh)));
 	}
 
 	return 0;
