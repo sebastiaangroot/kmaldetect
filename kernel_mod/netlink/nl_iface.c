@@ -45,14 +45,14 @@ int maldetect_nl_send_syscall(SYSCALL_DUMMY *msg)
 /* Once we've established connection with the userspace application, we do nothing with incomming traffic */
 static void recv_msg_dummy(struct sk_buff *skb)
 {
-	int res;
+	/*int res;
 	SYSCALL_DUMMY item;
 	item.id = 1251251;
 	res = maldetect_nl_send_syscall(&item);
 	if (res != 0)
 	{
 		printk(KERN_WARNING "[kmaldetect] Error sending syscall message\n");
-	}
+	}*/
 }
 
 /* Initial setup of a connection with the userspace application. todo: create an error-recovery method for the connection  */

@@ -74,7 +74,6 @@ int main(void)
 		exit(1);
 	}
 
-	int doonce = 0;
 	sock_fd = socket(AF_NETLINK, SOCK_DGRAM, NETLINK_MALDETECT);
 
 	memset(&src_addr, 0, sizeof(src_addr));
@@ -112,22 +111,8 @@ int main(void)
 	while (1)
 	{
 		recvmsg(sock_fd, &msg, 0);
-		if (!doonce)
-		{
-			printf("Received message: %s\n", (char *)NLMSG_DATA(nlh));
-			msg.msg_name = (void *)&dest_addr;
-			msg.msg_namelen = sizeof(dest_addr);
-			msg.msg_iov = &iov;
-			msg.msg_iovlen = 1;
-			sendmsg(sock_fd, &msg, 0);
-			doonce = 1;
-		}
-		else
-		{
-			TEST_STRUCT *test = (TEST_STRUCT *)NLMSG_DATA(nlh);
-			printf("Received message: %i\n", test->id);
-		}
-
+		TEST_STRUCT *test = (TEST_STRUCT *)NLMSG_DATA(nlh);
+		printf("Received message: %i\n", test->id);
 		memset(NLMSG_DATA(nlh), 0, strlen((char*)NLMSG_DATA(nlh)));
 	}
 

@@ -4,6 +4,7 @@
 #include <asm/syscall.h>
 #include <linux/syscalls.h>
 #include "hooks.h"
+#include "netlink/nl_iface.h"
 
 //Pointer to the syscall table
 static unsigned long **ref_sys_call_table;
@@ -58,6 +59,8 @@ static void enable_page_protection(void)
 
 static int __init mod_start(void)
 {
+	maldetect_nl_init();
+
 	if(!(ref_sys_call_table = acquire_sys_call_table()))
 	{
 		return -1;
@@ -82,6 +85,7 @@ static void __exit mod_end(void)
 	unreg_hooks(ref_sys_call_table);
 	enable_page_protection();
 
+	maldetect_nl_close();
 	printk(KERN_INFO "[kmaldetect] Stopped\n");
 }
 

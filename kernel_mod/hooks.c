@@ -1,12 +1,15 @@
 #include <asm/unistd.h>
 #include <linux/syscalls.h>
+#include "netlink/nl_iface.h"
 
 long (*ref_sys_open)(const char __user *, int, int) = 0;
 
 long hook_open(const char *filename, int flags, int mode)
 {
 	long retval = ref_sys_open(filename, flags, mode);
-	printk(KERN_INFO "[kmaldetect] sys_open\n");
+	SYSCALL_DUMMY mald_data;
+	mald_data.id = 1;
+	maldetect_nl_send_syscall(&mald_data);
 	return retval;
 }
 
