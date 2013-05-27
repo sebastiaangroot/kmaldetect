@@ -4,11 +4,12 @@ x : Yet to do
 
 +Communication channel between kernel- and userspace
 	+Kernel netlink sending interface
-	-Userlevel netlink listening interface
+	+Userlevel netlink listening interface
 -Syscall monitor for all syscalls
 	-Hooks generation script
-	-Hook functions (including neccesary metadata)
-	-Register and unregister functions
+	-Hook functions
+	+Metadata collection
+	+Register and unregister functions
 -Detection application
 	-Systemcall DFA (transition matrix)
 	+Updating state encoding table (which states on the DFA should I follow to update this encoding table, given input syscall x)
@@ -24,6 +25,6 @@ x : Yet to do
 		xIf a hit is found, report it to the user
 -Testing Samples
 	xSingle process malware
-	-Strace of its execution
-	-DFA based on its strace
-	xTransition matrix based on its DFA
+	+Strace of its execution
+	+DFA based on its strace
+	+Transition matrix based on its DFA
