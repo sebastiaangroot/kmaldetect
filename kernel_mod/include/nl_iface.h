@@ -5,13 +5,7 @@
 #include "kmaldetect.h"
 #endif
 
-typedef struct maldetect_dummy_str {
-    int id;
-	unsigned long inode;
-} SYSCALL_DUMMY;
-
-
-extern int maldetect_nl_send_syscall(SYSCALL_DUMMY *data);
+extern int maldetect_nl_send_syscall(SYSCALL *data);
 extern void maldetect_nl_init(void);
 extern void maldetect_nl_close(void);
 

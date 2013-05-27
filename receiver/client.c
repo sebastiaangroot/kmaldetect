@@ -14,8 +14,9 @@
 
 typedef struct test_str
 {
-	int id;
+	int sys_id;
 	unsigned long inode;
+	pid_t pid;
 } TEST_STRUCT;
 
 struct sockaddr_nl src_addr, dest_addr;
@@ -108,12 +109,16 @@ int main(void)
 	sendmsg(sock_fd, &msg, 0);
 
 	printf("Waiting for message from kernel\n");
-	
+
+	recvmsg(sock_fd, &msg, 0);
+	printf("Received message: %s\n", (char *)NLMSG_DATA(nlh));
+	memset(NLMSG_DATA(nlh), 0, strlen((char *)NLMSG_DATA(nlh)));
+
 	while (1)
 	{
 		recvmsg(sock_fd, &msg, 0);
 		TEST_STRUCT *test = (TEST_STRUCT *)NLMSG_DATA(nlh);
-		printf("Received message: %i, %ld\n", test->id, test->inode);
+		printf("%i,%lu,%i\n", test->sys_id, test->inode, test->pid);
 		memset(NLMSG_DATA(nlh), 0, strlen((char*)NLMSG_DATA(nlh)));
 	}
 

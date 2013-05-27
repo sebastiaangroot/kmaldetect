@@ -4,7 +4,9 @@
 #include <asm/syscall.h>
 #include <linux/syscalls.h>
 #include "hooks.h"
-#include "netlink/nl_iface.h"
+#include "nl_iface.h"
+
+MODULE_LICENSE("GPL");
 
 //Pointer to the syscall table
 static unsigned long **ref_sys_call_table;
