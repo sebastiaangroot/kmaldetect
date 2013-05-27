@@ -7,6 +7,7 @@
 
 typedef struct maldetect_dummy_str {
     int id;
+	unsigned long inode;
 } SYSCALL_DUMMY;
 
 

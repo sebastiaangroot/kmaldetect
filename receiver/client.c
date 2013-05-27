@@ -15,6 +15,7 @@
 typedef struct test_str
 {
 	int id;
+	unsigned long inode;
 } TEST_STRUCT;
 
 struct sockaddr_nl src_addr, dest_addr;
@@ -112,7 +113,7 @@ int main(void)
 	{
 		recvmsg(sock_fd, &msg, 0);
 		TEST_STRUCT *test = (TEST_STRUCT *)NLMSG_DATA(nlh);
-		printf("Received message: %i\n", test->id);
+		printf("Received message: %i, %ld\n", test->id, test->inode);
 		memset(NLMSG_DATA(nlh), 0, strlen((char*)NLMSG_DATA(nlh)));
 	}
 
