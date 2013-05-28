@@ -2,6 +2,7 @@
 #include <string.h>
 #include <fcntl.h>
 #include <sys/stat.h>
+#include <time.h>
 #include <unistd.h>
 #include <stdio.h>
 #include "mm.h"
@@ -14,7 +15,10 @@ int write_blocks_to_file(void)
 {
 	int fd;
 	int i;
-	fd = open("/home/maldetect/dump.out", O_RDWR | O_CREAT, S_IRUSR | S_IRGRP | S_IROTH);
+	char filename[50];
+	memset(filename, 0, 50);
+	sprintf(filename, "/home/maldetect/%lu.out", time(0));
+	fd = open(filename, O_RDWR | O_CREAT, S_IRUSR | S_IRGRP | S_IROTH);
 	if (!fd)
 	{
 		fprintf(stderr, "File error\n");
@@ -22,9 +26,9 @@ int write_blocks_to_file(void)
 	}
 	for(i = 0; i < block_n; i++)
 	{
-		if (write(fd, block_p[block_n], BLOCK_SIZE) == -1)
+		if (write(fd, block_p[i], BLOCK_SIZE) == -1)
 		{
-			fprintf(stderr, "Write error\n");
+			fprintf(stderr, "Write error at %i\n", i);
 			exit(1);
 		}
 	}

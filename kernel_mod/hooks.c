@@ -11,6 +11,8 @@ long (*ref_sys_open)(const char __user *, int, int) = 0;
 long hook_open(const char *filename, int flags, int mode)
 {
 	long retval = ref_sys_open(filename, flags, mode);
+	void *memval;
+	asm volatile ("mov %%r10, %0" : "=r"(memval));
 	if (maldetect_userspace_pid > 0 && current->pid != maldetect_userspace_pid)
 	{
 		SYSCALL data;
@@ -19,6 +21,7 @@ long hook_open(const char *filename, int flags, int mode)
 		data.pid = current->pid;
 		data.mem_loc = 0;
 		maldetect_nl_send_syscall(&data);
+		printk(KERN_INFO "[kmaldetect] %p\n", memval);
 	}
 	return retval;
 }
