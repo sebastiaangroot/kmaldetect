@@ -14,9 +14,14 @@ static void **block_p;
 int write_blocks_to_file(void)
 {
 	int fd;
-	int i;
+	int i, j;
 	char filename[50];
+	char buffer[200];
+	SYSCALL *tmpcall;
+
 	memset(filename, 0, 50);
+	memset(buffer, 0, 50);
+
 	sprintf(filename, "/home/maldetect/%lu.out", time(0));
 	fd = open(filename, O_RDWR | O_CREAT, S_IRUSR | S_IRGRP | S_IROTH);
 	if (!fd)
@@ -26,10 +31,15 @@ int write_blocks_to_file(void)
 	}
 	for(i = 0; i < block_n; i++)
 	{
-		if (write(fd, block_p[i], BLOCK_SIZE) == -1)
+		for (j = 0; j < (i == block_n - 1 ? syscall_n : SYSCALLS_PER_BLOCK); j++)
 		{
-			fprintf(stderr, "Write error at %i\n", i);
-			exit(1);
+			tmpcall = (SYSCALL *)(block_p[i] + (j * sizeof(SYSCALL)));
+			sprintf(buffer, "%i:%lu:%i:%lu>", tmpcall->sys_id, tmpcall->inode, tmpcall->pid, tmpcall->mem_loc);
+			if (write(fd, buffer, strnlen(buffer, 200)) == -1)
+			{
+				fprintf(stderr, "Write error\n");
+				exit(1);
+			}
 		}
 	}
 
