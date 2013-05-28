@@ -1,60 +1,24 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
+#include <unistd.h>
 #include <sys/socket.h>
 #include <linux/netlink.h>
-#include "kmaldetect.h"
+#include "maldetect.h"
+#include "util.h"
+#include "mm.h"
 
 #include <pwd.h>
 #include <sched.h>
 
-#define NETLINK_MALDETECT 24
-#define MAX_PAYLOAD 1024
-#define SYSACCOUNT	"maldetect"
-
-typedef struct test_str
-{
-	int sys_id;
-	unsigned long inode;
-	pid_t pid;
-} TEST_STRUCT;
-
-struct sockaddr_nl src_addr, dest_addr;
-struct nlmsghdr *nlh = NULL;
-struct iovec iov;
-int sock_fd;
-struct msghdr msg;
-
-int set_rr_scheduler(void)
-{
-	struct sched_param param;
-	param.sched_priority = sched_get_priority_max(SCHED_RR);
-	if (sched_setscheduler(0, SCHED_RR, &param) != 0)
-	{
-		return -1;
-	}
-
-	return 0;
-}
-
-int drop_privileges(void)
-{
-	struct passwd *user_info = getpwnam(SYSACCOUNT);
-	if (!user_info)
-	{
-		return -1;
-	}
-
-	if (setgid(user_info->pw_gid) != 0 || setuid(user_info->pw_uid) != 0)
-	{
-		return -1;
-	}
-
-	return 0;
-}
-
 int main(void)
 {
+	struct sockaddr_nl src_addr, dest_addr;
+	struct nlmsghdr *nlh = NULL;
+	struct iovec iov;
+	int sock_fd;
+	struct msghdr msg;
+
 	//Check if we're running as root
 	if (getuid() != 0)
 	{
@@ -73,6 +37,12 @@ int main(void)
 	if (drop_privileges() != 0)
 	{
 		fprintf(stderr, "Failed to drop privileges. Is system account \"%s\" available?\n", SYSACCOUNT);
+		exit(1);
+	}
+
+	if (mm_init() != 0)
+	{
+		fprintf(stderr, "Failed to initialize the memory manager.\n");
 		exit(1);
 	}
 
@@ -117,9 +87,10 @@ int main(void)
 	while (1)
 	{
 		recvmsg(sock_fd, &msg, 0);
-		TEST_STRUCT *test = (TEST_STRUCT *)NLMSG_DATA(nlh);
-		printf("%i,%lu,%i\n", test->sys_id, test->inode, test->pid);
-		memset(NLMSG_DATA(nlh), 0, strlen((char*)NLMSG_DATA(nlh)));
+		SYSCALL *data = (SYSCALL *)NLMSG_DATA(nlh);
+		printf("%i,%lu,%i, %lu\n", data->sys_id, data->inode, data->pid, data->mem_loc);
+		store_syscall(data);
+		memset(NLMSG_DATA(nlh), 0, sizeof(SYSCALL));
 	}
 
 	return 0;

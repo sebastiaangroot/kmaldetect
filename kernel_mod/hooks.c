@@ -5,16 +5,21 @@
 #include "utils.h"
 #include "kmaldetect.h"
 
+extern pid_t maldetect_userspace_pid;
 long (*ref_sys_open)(const char __user *, int, int) = 0;
 
 long hook_open(const char *filename, int flags, int mode)
 {
 	long retval = ref_sys_open(filename, flags, mode);
-	SYSCALL data;
-	data.sys_id = 1;
-	data.inode = get_inode();
-	data.pid = current->pid;
-	maldetect_nl_send_syscall(&data);
+	if (maldetect_userspace_pid > 0 && current->pid != maldetect_userspace_pid)
+	{
+		SYSCALL data;
+		data.sys_id = 1;
+		data.inode = get_inode();
+		data.pid = current->pid;
+		data.mem_loc = 0;
+		maldetect_nl_send_syscall(&data);
+	}
 	return retval;
 }
 

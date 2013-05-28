@@ -8,8 +8,8 @@
 #define NETLINK_MALDETECT 24
 
 DEFINE_MUTEX(maldetect_nl_mutex);
-struct sock *nl_sk;
-int userspace_pid;
+static struct sock *nl_sk;
+pid_t maldetect_userspace_pid;
 
 /* Exported send_syscall function to pass syscall information to the userspace application */
 int maldetect_nl_send_syscall(SYSCALL *msg)
@@ -32,7 +32,7 @@ int maldetect_nl_send_syscall(SYSCALL *msg)
 	memset(NLMSG_DATA(nlh) + sizeof(SYSCALL), 0, NLMSG_SPACE(sizeof(SYSCALL)) - NLMSG_LENGTH(sizeof(SYSCALL)));
 	memcpy(NLMSG_DATA(nlh), msg, sizeof(SYSCALL));
 	mutex_lock(&maldetect_nl_mutex);
-	res = netlink_unicast(nl_sk, skb, userspace_pid, 1);
+	res = netlink_unicast(nl_sk, skb, maldetect_userspace_pid, 1);
 	mutex_unlock(&maldetect_nl_mutex);
 	return 0;
 }
@@ -47,7 +47,7 @@ static void recv_msg_dummy(struct sk_buff *skb)
 static void recv_msg(struct sk_buff *skb)
 {
 	struct nlmsghdr *nlh;
-	int pid;
+	pid_t pid;
 	struct sk_buff *skb_out;
 	int msg_size;
 	char *msg = "kmaldetect-ack";
@@ -92,17 +92,17 @@ static void recv_msg(struct sk_buff *skb)
 		return;
 	}
 
-	userspace_pid = pid;
+	maldetect_userspace_pid = pid;
 	netlink_kernel_release(nl_sk);
 	nl_sk = netlink_kernel_create(&init_net, NETLINK_MALDETECT, 0, recv_msg_dummy, NULL, THIS_MODULE);
 	mutex_unlock(&maldetect_nl_mutex);
-	printk(KERN_INFO "[kmaldetect] Set ulevel pid to %i\n", userspace_pid);
+	printk(KERN_INFO "[kmaldetect] Set ulevel pid to %i\n", maldetect_userspace_pid);
 }
 
 /* Exported init-function for the netlink interface */
 void maldetect_nl_init(void)
 {
-	userspace_pid = -1;
+	maldetect_userspace_pid = -1;
 	nl_sk = netlink_kernel_create(&init_net, NETLINK_MALDETECT, 0, recv_msg, NULL, THIS_MODULE);
 
 	if (!nl_sk)
