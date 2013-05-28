@@ -20,7 +20,6 @@ int write_blocks_to_file(void)
 	SYSCALL *tmpcall;
 
 	memset(filename, 0, 50);
-	memset(buffer, 0, 50);
 
 	sprintf(filename, "/home/maldetect/%lu.out", time(0));
 	fd = open(filename, O_RDWR | O_CREAT, S_IRUSR | S_IRGRP | S_IROTH);
@@ -33,6 +32,8 @@ int write_blocks_to_file(void)
 	{
 		for (j = 0; j < (i == block_n - 1 ? syscall_n : SYSCALLS_PER_BLOCK); j++)
 		{
+			memset(buffer, 0, 200);
+
 			tmpcall = (SYSCALL *)(block_p[i] + (j * sizeof(SYSCALL)));
 			sprintf(buffer, "%i:%lu:%i:%lu>", tmpcall->sys_id, tmpcall->inode, tmpcall->pid, tmpcall->mem_loc);
 			if (write(fd, buffer, strnlen(buffer, 200)) == -1)
