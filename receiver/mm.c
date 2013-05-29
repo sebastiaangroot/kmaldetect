@@ -28,15 +28,15 @@ int write_blocks_to_file(void)
 		fprintf(stderr, "File error\n");
 		exit(1);
 	}
-	for(i = 0; i < block_n; i++)
+	for(i = 0; i < block_n; i++) //For each memory block of 64KB
 	{
-		for (j = 0; j < (i == block_n - 1 ? syscall_n : SYSCALLS_PER_BLOCK); j++)
+		for (j = 0; j < (i == block_n - 1 ? syscall_n : SYSCALLS_PER_BLOCK); j++) //If we're at the last block, count until syscall_n, otherwise, count till SYSCALLS_PER_BLOCK
 		{
 			memset(buffer, 0, 200);
 
-			tmpcall = (SYSCALL *)(block_p[i] + (j * sizeof(SYSCALL)));
-			sprintf(buffer, "%i:%lu:%i:%lu>", tmpcall->sys_id, tmpcall->inode, tmpcall->pid, tmpcall->mem_loc);
-			if (write(fd, buffer, strnlen(buffer, 200)) == -1)
+			tmpcall = (SYSCALL *)(block_p[i] + (j * sizeof(SYSCALL))); //Interpeted the beginning of our block + our current offset as a SYSCALL struct
+			sprintf(buffer, "%i:%lu:%i:%lu>", tmpcall->sys_id, tmpcall->inode, tmpcall->pid, tmpcall->mem_loc); //Transform our syscall variables to a char array
+			if (write(fd, buffer, strnlen(buffer, 200)) == -1) //Write the C-string contained in buffer (up to a max. of 200 chars) to file
 			{
 				fprintf(stderr, "Write error\n");
 				exit(1);
