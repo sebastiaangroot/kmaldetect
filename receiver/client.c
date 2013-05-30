@@ -11,6 +11,15 @@
 #include <pwd.h>
 #include <sched.h>
 
+/*
+ * - Check if we're root
+ * - Set our scheduler to the soft-realtime round robin scheduler
+ * - Set our uid and gid to that of user maldetect
+ * - Initiate the first 64KB block of memory to store syscall data
+ * - Prepare our netlink socket for listening to our kernel module
+ * - Send the message "maldetect-syn" and wait for the message "kmaldetect-ack"
+ * - Keep listening for mesages that send a SYSCALL struct, and upon receiving them, store them using the mm.c's functions
+ * */
 int main(void)
 {
 	struct sockaddr_nl src_addr, dest_addr;

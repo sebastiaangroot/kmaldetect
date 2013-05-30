@@ -11,6 +11,7 @@ static unsigned long syscall_n;
 static unsigned long block_n;
 static void **block_p;
 
+/* Write all saved syscalls to file /home/maldetect/<time>.out */
 int write_blocks_to_file(void)
 {
 	int fd;
@@ -47,6 +48,7 @@ int write_blocks_to_file(void)
 	return 0;
 }
 
+/* Allocate a new 64KB block of memory to fit 2048 32-byte syscalls. Increment the block_n pointer and reset syscall_n */
 static int add_block(void)
 {
 	if (block_n != 0)
@@ -73,6 +75,8 @@ static int add_block(void)
 	return 0;
 }
 
+/* If we're not at the end of our block yet, save the syscall. Otherwise, first add a new block. */
+/* For now, this also saves all syscalls to file and terminates the application if we've reached 10 blocks */
 int store_syscall(SYSCALL *input)
 {
 	if (syscall_n < SYSCALLS_PER_BLOCK)
@@ -96,6 +100,7 @@ int store_syscall(SYSCALL *input)
 	return 0;
 }
 
+/* Allocate the first block of memory to store syscalls in */
 int mm_init(void)
 {
 	block_n = 0;

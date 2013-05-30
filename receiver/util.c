@@ -3,6 +3,7 @@
 #include <unistd.h>
 #include "util.h"
 
+/* Change our scheduler to a soft-realtime round robin scheduler. This requires evelated privileges */
 int set_rr_scheduler(void)
 {
     struct sched_param param;
@@ -15,6 +16,7 @@ int set_rr_scheduler(void)
     return 0;
 }
 
+/* Changes the uid and gid to that of system account "maldetect" */
 int drop_privileges(void)
 {
     struct passwd *user_info = getpwnam(SYSACCOUNT);
