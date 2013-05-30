@@ -341,7 +341,7 @@ function Print-RegUnreg
 		$hookName = $refName.Replace("ref_", "hook_")
 		
 		$output += "`t$refname = (void *)syscall_table[$nrName];"
-		$output += "`tsyscall_table[$nrName] = (unsigned long *)$hookName"
+		$output += "`tsyscall_table[$nrName] = (unsigned long *)$hookName;"
 	}
 	$output += "}"
 	$output | Out-File -FilePath $Outfile -Append -Force
