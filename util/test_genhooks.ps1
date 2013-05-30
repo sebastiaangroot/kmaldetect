@@ -130,6 +130,56 @@ function Get-Arguments
 	return $retval
 }
 
+function Get-SysID
+{
+	Param(
+		[string]$funct
+	)
+	
+	$unifile = Get-Content $InUnistd
+	$output
+	for ($i = 0; $i -lt $unifile.Length; $i++)
+	{
+		if ($unifile[$i].Contains($funct))
+		{
+			if ($unifile[$i - 1].Contains("`t"))
+			{
+				$output = $unifile[$i - 1]
+				$output = $output.Substring($output.IndexOf("`t")).Replace("`t", "")
+				Write-Output $output
+			}
+			else
+			{
+				$output = $unifile[$i - 1]
+				$output = $output.Substring($output.IndexOf(" ", 10)).Replace(" ", "")
+				Write-Output $output
+			}
+		}
+	}
+}
+
+function Get-NrName
+{
+	Param(
+		[string]$sysName
+	)
+	
+	$unifile = Get-Content $InUnistd
+	$found = $false
+	foreach ($line in $unifile)
+	{
+		if ($line.Contains($sysName))
+		{
+			$found = $true
+			$output = $line.Substring($line.IndexOf("(") + 1, $line.IndexOf(",") - ($line.IndexOf("(") + 1))
+			return $output
+		}
+	}
+	
+	Write-Warning "$sysName NrName not found!"
+	return "__NR_open"
+}
+
 function Print-Includes
 {
 	Write-Output "#include <asm/unistd.h>"
@@ -203,8 +253,10 @@ function Print-FunctPointers
 					}
 				}
 			}
-			if ($found -AND (-NOT ($outputArray -contains $prototype)))
+			if ($found)
 			{
+				$duplicate = $false
+				
 				if ($prototype.StartsWith("asmlinkage "))
 				{
 					$prototype = $prototype.Substring(11)
@@ -213,7 +265,19 @@ function Print-FunctPointers
 				$prototype = $prototype.Insert($prototype.IndexOf("("), ")")
 				$prototype = $prototype.Insert($prototype.IndexOf($functName), "(*ref_")
 				$prototype = $prototype.Insert($prototype.IndexOf(";"), " = NULL")
-				$outputArray += $prototype
+				
+				foreach ($entry in $outputArray)
+				{
+					if ($entry.Equals($prototype))
+					{
+						$duplicate = $true
+					}
+				}
+				
+				if (-NOT $duplicate)
+				{
+					$outputArray += $prototype
+				}
 			}
 		}
 	}
@@ -226,32 +290,80 @@ function Print-HookFunctions
 		[string[]]$functPointers
 	)
 	
-	[string[]]$output = @()
+	[string[]]$output
 	foreach ($funct in $functPointers)
 	{
+		$output = @()
 		$fullArgs = Get-Arguments -funct $funct.Substring($funct.IndexOf(")(") + 1)
 		$plainArgs = Get-Arguments-Names-Only -funct $funct.Substring($funct.IndexOf(")(") + 1)
 		
+		$syscallName = $funct.Substring($funct.IndexOf("ref_") + 4, $funct.IndexOf(")") - ($funct.IndexOf("ref_") + 4))
 		$retType = $funct.Substring(0, $funct.IndexOf(" "))
 		
-		$hookName = "hook_" + $funct.Substring($funct.IndexOf("ref_") + 4, $funct.IndexOf(")") - ($funct.IndexOf("ref_") + 4))
+		$hookName = "hook_" + $syscallName
 		$refName = $funct.Substring($funct.IndexOf("ref_"), $funct.IndexOf(")") - ($funct.IndexOf("ref_")))
 		
-		#$output += $refName
-		
+		$sysid = Get-SysID -funct $syscallName
+				
 		$output += ""
 		$output += "$retType $hookName($fullArgs)"
 		$output += "{"
 		$output += "`t$retType retval = $refName($plainArgs);"
+		$output += "`tif (maldetect_userspace_pid > 0 && current->pid != maldetect_userspace_pid)"
+		$output += "`t{"
+		$output += "`t`tSYSCALL data;"
+		$output += "`t`tdata.sys_id = $sysid;"
+		$output += "`t`tdata.inode = get_inode();"
+		$output += "`t`tdata.pid = current->pid;"
+		$output += "`t`tdata.mem_loc = 0;"
+		$output += "`t`tmaldetect_nl_send_syscall(&data);"
+		$output += "`t}"
 		$output += "`treturn retval;"
 		$output += "}"
-		
+		$output | Out-File -FilePath $Outfile -Append -Force
 	}
-	return $output
+}
+
+function Print-RegUnreg
+{
+	Param(
+		[string[]]$functPointers
+	)
+	
+	[string[]]$output = @()
+	$output += ""
+	$output += "void reg_hooks(unsigned long **syscall_table)"
+	$output += "{"
+	foreach ($funct in $functPointers)
+	{
+		$refName = $funct.Substring($funct.IndexOf("ref_"), $funct.IndexOf(")") - ($funct.IndexOf("ref_")))
+		$nrName = Get-NrName -sysName $refName.Substring(4)
+		$hookName = $refName.Replace("ref_", "hook_")
+		
+		$output += "`t$refname = (void *)syscall_table[$nrName];"
+		$output += "`tsyscall_table[$nrName] = (unsigned long *)$hookName"
+	}
+	$output += "}"
+	$output | Out-File -FilePath $Outfile -Append -Force
+	$output = @()
+	
+	$output += ""
+	$output += "void unreg_hooks(unsigned long **syscall_table)"
+	$output += "{"	
+	foreach ($funct in $functPointers)
+	{
+		$refName = $funct.Substring($funct.IndexOf("ref_"), $funct.IndexOf(")") - ($funct.IndexOf("ref_")))
+		$nrName = Get-NrName -sysName $refName.Substring(4)
+		
+		$output += "`tsyscall_table[$nrName] = (unsigned long *)$refName;"
+	}
+	$output += "}"
+	$output | Out-File -FilePath $Outfile -Append -Force
 }
 
 New-Item -Path $OutFile -ItemType file -Force
 Print-Includes | Out-File -FilePath $Outfile -Append -Force
 $functPointers = Print-FunctPointers -contentUnistd (Get-Content $InUnistd) -contentSysArch (Get-Content $InSysArch) -contentSysGen (Get-Content $inSysGen) -contentSysArchGen (Get-Content $inSysArchGen)
 $functPointers | Out-File -FilePath $OutFile -Append -Force
-Print-HookFunctions -functPointers $functPointers | Out-File -FilePath $OutFile -Append -Force
+Print-HookFunctions -functPointers $functPointers
+Print-RegUnreg -functPointers $functPointers
