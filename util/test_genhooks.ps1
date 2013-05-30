@@ -146,13 +146,13 @@ function Get-SysID
 			{
 				$output = $unifile[$i - 1]
 				$output = $output.Substring($output.IndexOf("`t")).Replace("`t", "")
-				Write-Output $output
+				return $output
 			}
 			else
 			{
 				$output = $unifile[$i - 1]
 				$output = $output.Substring($output.IndexOf(" ", 10)).Replace(" ", "")
-				Write-Output $output
+				return $output
 			}
 		}
 	}
@@ -188,6 +188,8 @@ function Print-Includes
 	Write-Output "#include `"nl_iface.h`""
 	Write-Output "#include `"utils.h`""
 	Write-Output "#include `"kmaldetect.h`""
+	Write-Output ""
+	Write-Output "extern pid_t maldetect_userspace_pid;"
 }
 
 function Print-FunctPointers
