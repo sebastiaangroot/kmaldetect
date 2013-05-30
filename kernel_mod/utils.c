@@ -6,6 +6,7 @@
 #include <linux/proc_fs.h>
 #include <linux/mount.h>
 
+/* Looks at the currently scheduled process and returns the first associated executable as inode number */
 unsigned long get_inode(void)
 {
     struct dentry *dentry = NULL;

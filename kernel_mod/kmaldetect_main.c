@@ -59,6 +59,7 @@ static void enable_page_protection(void)
 	asm volatile("mov %0, %%cr0" : : "r" (value | 0x00010000));
 }
 
+/* Initiate the netlink interface, get the syscall table and register the hook functions */
 static int __init mod_start(void)
 {
 	maldetect_nl_init();
@@ -76,6 +77,7 @@ static int __init mod_start(void)
 	return 0;
 }
 
+/* Unregister the hook functions and close the socket in the netlink interface */
 static void __exit mod_end(void)
 {
 	if(!ref_sys_call_table)
