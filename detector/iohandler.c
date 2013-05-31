@@ -72,3 +72,9 @@ int read_syscalls_from_file(char *filename)
 			break;
 	}
 }
+
+int main(int argc, char **argv)
+{
+	read_syscalls_from_file(argv[1]);
+	return 0;
+}
