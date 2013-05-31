@@ -4,6 +4,7 @@
 #include <linux/netlink.h>
 #include <net/sock.h>
 #include "kmaldetect.h"
+#include "hooks.h"
 
 #define NETLINK_MALDETECT 24
 
@@ -93,8 +94,9 @@ static void recv_msg(struct sk_buff *skb)
 	}
 
 	maldetect_userspace_pid = pid;
-	netlink_kernel_release(nl_sk);
-	nl_sk = netlink_kernel_create(&init_net, NETLINK_MALDETECT, 0, recv_msg_dummy, NULL, THIS_MODULE);
+	//netlink_kernel_release(nl_sk);
+	//nl_sk = netlink_kernel_create(&init_net, NETLINK_MALDETECT, 0, recv_msg_dummy, NULL, THIS_MODULE);
+
 	mutex_unlock(&maldetect_nl_mutex);
 	printk(KERN_INFO "[kmaldetect] Set ulevel pid to %i\n", maldetect_userspace_pid);
 }

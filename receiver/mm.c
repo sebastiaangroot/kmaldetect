@@ -3,6 +3,7 @@
 #include <fcntl.h>
 #include <sys/stat.h>
 #include <time.h>
+#include <sys/time.h>
 #include <unistd.h>
 #include <stdio.h>
 #include "mm.h"
@@ -19,10 +20,13 @@ int write_blocks_to_file(void)
 	char filename[50];
 	char buffer[200];
 	SYSCALL *tmpcall;
+	struct timeval tv;
+
+	gettimeofday(&tv, NULL);
 
 	memset(filename, 0, 50);
 
-	sprintf(filename, "/home/maldetect/%lu.out", time(0));
+	sprintf(filename, "/home/maldetect/%lu.out", (tv.tv_sec) * 1000 + (tv.tv_usec) / 1000);
 	fd = open(filename, O_RDWR | O_CREAT, S_IRUSR | S_IRGRP | S_IROTH);
 	if (!fd)
 	{
@@ -92,10 +96,16 @@ int store_syscall(SYSCALL *input)
 		memcpy(block_p[block_n - 1] + (syscall_n * sizeof(SYSCALL)), input, sizeof(SYSCALL));
 		syscall_n++;
 	}
-	if (block_n == 10)
+	if (block_n == 512)
 	{
+		int i;
 		write_blocks_to_file();
-		exit(1);
+		for (i = 0; i < block_n; i++)
+		{
+			free(block_p[block_n]);
+		}
+		free(block_p);
+		mm_init();
 	}
 	return 0;
 }
