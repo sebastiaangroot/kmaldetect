@@ -4575,7 +4575,7 @@ void reg_hooks(unsigned long **syscall_table)
 	syscall_table[__NR_write] = (unsigned long *)hook_sys_write;
 	ref_sys_open = (void *)syscall_table[__NR_open];
 	syscall_table[__NR_open] = (unsigned long *)hook_sys_open;
-	/*ref_sys_close = (void *)syscall_table[__NR_close];
+	ref_sys_close = (void *)syscall_table[__NR_close];
 	syscall_table[__NR_close] = (unsigned long *)hook_sys_close;
 	ref_sys_newstat = (void *)syscall_table[__NR_stat];
 	syscall_table[__NR_stat] = (unsigned long *)hook_sys_newstat;
@@ -5139,7 +5139,6 @@ void reg_hooks(unsigned long **syscall_table)
 	syscall_table[__NR_process_vm_readv] = (unsigned long *)hook_sys_process_vm_readv;
 	ref_sys_process_vm_writev = (void *)syscall_table[__NR_process_vm_writev];
 	syscall_table[__NR_process_vm_writev] = (unsigned long *)hook_sys_process_vm_writev;
-	*/
 }
 
 void unreg_hooks(unsigned long **syscall_table)
@@ -5147,7 +5146,7 @@ void unreg_hooks(unsigned long **syscall_table)
 	syscall_table[__NR_read] = (unsigned long *)ref_sys_read;
 	syscall_table[__NR_write] = (unsigned long *)ref_sys_write;
 	syscall_table[__NR_open] = (unsigned long *)ref_sys_open;
-	/*syscall_table[__NR_close] = (unsigned long *)ref_sys_close;
+	syscall_table[__NR_close] = (unsigned long *)ref_sys_close;
 	syscall_table[__NR_stat] = (unsigned long *)ref_sys_newstat;
 	syscall_table[__NR_fstat] = (unsigned long *)ref_sys_newfstat;
 	syscall_table[__NR_lstat] = (unsigned long *)ref_sys_newlstat;
@@ -5429,5 +5428,4 @@ void unreg_hooks(unsigned long **syscall_table)
 	syscall_table[__NR_sendmmsg] = (unsigned long *)ref_sys_sendmmsg;
 	syscall_table[__NR_process_vm_readv] = (unsigned long *)ref_sys_process_vm_readv;
 	syscall_table[__NR_process_vm_writev] = (unsigned long *)ref_sys_process_vm_writev;
-	*/
 }

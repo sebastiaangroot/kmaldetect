@@ -96,7 +96,7 @@ int store_syscall(SYSCALL *input)
 		memcpy(block_p[block_n - 1] + (syscall_n * sizeof(SYSCALL)), input, sizeof(SYSCALL));
 		syscall_n++;
 	}
-	if (block_n == 512)
+	if (block_n == 2048)
 	{
 		int i;
 		write_blocks_to_file();
