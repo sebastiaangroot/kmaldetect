@@ -9,7 +9,7 @@
 MODULE_LICENSE("GPL");
 
 //Pointer to the syscall table
-unsigned long **ref_sys_call_table;
+static unsigned long **ref_sys_call_table;
 
 //From the start of kernel address space, look for the beginning of the sys_call function-pointer table
 static unsigned long **acquire_sys_call_table(void)
@@ -33,7 +33,7 @@ static unsigned long **acquire_sys_call_table(void)
 }
 
 //Check if the cr0 write-protect bit is set. If not, page write-protection is already disabled. If so, bitwise-AND bit 16 to zero and set it to cr0
-void disable_page_protection(void)
+static void disable_page_protection(void)
 {
 	unsigned long value;
 	asm volatile("mov %%cr0, %0" : "=r"(value));
@@ -46,7 +46,7 @@ void disable_page_protection(void)
 }
 
 //Check if cr0 write-protect bit is set. If so, page write-protection is already enabled. If not, bitwise-OR bit 16 to one and set it to cr0
-void enable_page_protection(void)
+static void enable_page_protection(void)
 {
 	unsigned long value;
 	asm volatile("mov %%cr0, %0" : "=r" (value));
