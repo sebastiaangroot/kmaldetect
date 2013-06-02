@@ -55,9 +55,6 @@ function get_syscall_index
 		'rt_sigprocmask')
 			return 14
 			;;
-		'rt_sigreturn')
-			return 15
-			;;
 		'ioctl')
 			return 16
 			;;
@@ -177,18 +174,6 @@ function get_syscall_index
 			;;
 		'getsockopt')
 			return 55
-			;;
-		'clone')
-			return 56
-			;;
-		'fork')
-			return 57
-			;;
-		'vfork')
-			return 58
-			;;
-		'execve')
-			return 59
 			;;
 		'exit')
 			return 60
@@ -403,9 +388,6 @@ function get_syscall_index
 		'rt_sigsuspend')
 			return 130
 			;;
-		'sigaltstack')
-			return 131
-			;;
 		'utime')
 			return 132
 			;;
@@ -525,9 +507,6 @@ function get_syscall_index
 			;;
 		'setdomainname')
 			return 171
-			;;
-		'iopl')
-			return 172
 			;;
 		'ioperm')
 			return 173
@@ -947,6 +926,7 @@ function get_syscall_index
 			return 311
 			;;
 	esac
+	return -1
 }
 
 OUTFILE=
@@ -1001,7 +981,7 @@ for (( i=0; i < ${#SYSCALLS[@]}; i++))
 do
 	get_syscall_index ${SYSCALLS[$i]}
 	ANS=$?
-	if [ $SYS_NUM_WRITTEN -eq 0 ]
+	if [ $SYS_NUM_WRITTEN -eq 0 -a $ANS -ne -1 ]
 	then
 		echo -n "$ANS" > $OUTFILE
 		SYS_NUM_WRITTEN=1
