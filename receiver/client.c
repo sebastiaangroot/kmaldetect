@@ -20,7 +20,8 @@
 * - Send the message "maldetect-syn" and wait for the message "kmaldetect-ack"
 * - Keep listening for mesages that send a SYSCALL struct, and upon receiving them, store them using the mm.c's functions
 * */
-int main(void)
+extern int block_lim;
+int main(int argc, char **argv)
 {
 	struct sockaddr_nl src_addr, dest_addr;
 	struct nlmsghdr *nlh = NULL;
@@ -28,6 +29,20 @@ int main(void)
 	int sock_fd;
 	struct msghdr msg;
 	unsigned long long count = 0;
+
+	if (argc == 2)
+	{
+		block_lim = atoi(argv[1]);
+		if (block_lim <= 0)
+		{
+			block_lim = 2048;
+		}
+	}
+	else
+	{
+		block_lim = 2048;
+	}
+
 
 	//Check if we're running as root
 	if (getuid() != 0)
