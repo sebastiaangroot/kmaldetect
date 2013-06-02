@@ -6,20 +6,18 @@
 #define MAX_SIGLEN 1024*1024
 #define NUM_SYSCALLS 311
 
-struct signature_struct
+typedef struct
 {
 	int list_length;
 	unsigned short *list;
 	char *filename;
-};
-typedef struct signature_struct SIGNATURE;
+} SIGNATURE;
 
-struct endstate_struct
+typedef struct
 {
 	int state;
 	char *filename;
-};
-typedef struct endstate_struct ENDSTATE;
+} ENDSTATE;
 
 ENDSTATE *endstates;
 int endstate_n;
@@ -38,13 +36,13 @@ SIGNATURE * load_signature(char *filename)
 
 	while(fscanf(file, "%u,", &read_num))
 	{
-		tmp_list[tmp_list_p] = (unsigned short) read_num;
-		tmp_list_p++;
-
 		if (feof(file) || tmp_list_p >= MAX_SIGLEN)
 		{
 			break;
 		}
+
+		tmp_list[tmp_list_p] = (unsigned short) read_num;
+		tmp_list_p++;
 	}
 
 	tmp_sig = malloc(sizeof(SIGNATURE));

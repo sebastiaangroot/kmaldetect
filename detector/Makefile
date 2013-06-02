@@ -1,5 +1,14 @@
-test:
-	gcc tester.c parser.c -o parser_test -Wall
+SRC=detector.c sigloader.c parser.c sequencer.c util.c
+INC=include/
+CFLAGS=-Wall
+CC=gcc
+OUTPUT=detector
+
+all:
+	$(CC) $(SRC) -o $(OUTPUT) -I$(INC) $(CFLAGS)
+
+debug:
+	$(CC) $(SRC) -o $(OUTPUT) -I$(INC) $(CFLAGS) -ggdb
 
 clean:
-	rm parser_test
+	rm -f $(OUTPUT)

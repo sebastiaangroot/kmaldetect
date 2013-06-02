@@ -27,6 +27,7 @@ int main(void)
 	struct iovec iov;
 	int sock_fd;
 	struct msghdr msg;
+	unsigned long long count = 0;
 
 	//Check if we're running as root
 	if (getuid() != 0)
@@ -97,9 +98,10 @@ int main(void)
 	{
 		recvmsg(sock_fd, &msg, 0);
 		SYSCALL *data = (SYSCALL *)NLMSG_DATA(nlh);
-		printf("%i,%lu,%i, %lu\n", data->sys_id, data->inode, data->pid, data->mem_loc);
+		printf("%i,%lu,%i,%llu\n", data->sys_id, data->inode, data->pid, count);
 		store_syscall(data);
 		memset(NLMSG_DATA(nlh), 0, sizeof(SYSCALL));
+		count++;
 	}
 
 	return 0;
