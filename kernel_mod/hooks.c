@@ -61,6 +61,7 @@ long (*ref_sys_getpeername)(int, struct sockaddr __user *, int __user *) = NULL;
 long (*ref_sys_socketpair)(int, int, int, int __user *) = NULL;
 long (*ref_sys_setsockopt)(int fd, int level, int optname, char __user *optval, int optlen) = NULL;
 long (*ref_sys_getsockopt)(int fd, int level, int optname, char __user *optval, int __user *optlen) = NULL;
+long (*ref_sys_execve)(char __user *, char __user * __user *, char __user * __user *, struct pt_regs *);
 long (*ref_sys_exit)(int error_code) = NULL;
 long (*ref_sys_wait4)(pid_t pid, int __user *stat_addr, int options, struct rusage __user *ru) = NULL;
 long (*ref_sys_kill)(int pid, int sig) = NULL;
@@ -1115,6 +1116,21 @@ long hook_sys_getsockopt(int fd, int level, int optname, char __user *optval, in
 		maldetect_nl_send_syscall(&data);
 	}
 	return retval;
+}
+
+long hook_sys_execve(char __user *arg0, char __user * __user *arg1, char __user * __user *arg2, struct pt_regs *arg3)
+{
+	long retval = ref_sys_execve(arg0, arg1, arg2, arg3);
+	if (maldetect_userspace_pid > 0 && current->pid != maldetect_userspace_pid)
+   {
+      SYSCALL data;
+      data.sys_id = 59;
+      data.inode = get_inode();
+      data.pid = current->pid;
+      data.mem_loc = 0;
+      maldetect_nl_send_syscall(&data);
+   }
+   return retval;
 }
 
 long hook_sys_exit(int error_code)
@@ -4679,6 +4695,8 @@ void reg_hooks(unsigned long **syscall_table)
 	syscall_table[__NR_setsockopt] = (unsigned long *)hook_sys_setsockopt;
 	ref_sys_getsockopt = (void *)syscall_table[__NR_getsockopt];
 	syscall_table[__NR_getsockopt] = (unsigned long *)hook_sys_getsockopt;
+	ref_sys_execve = (void *)syscall_table[__NR_execve];
+	syscall_table[__NR_execve] = (unsigned long *)hook_sys_execve;
 	ref_sys_exit = (void *)syscall_table[__NR_exit];
 	syscall_table[__NR_exit] = (unsigned long *)hook_sys_exit;
 	ref_sys_wait4 = (void *)syscall_table[__NR_wait4];
@@ -5198,6 +5216,7 @@ void unreg_hooks(unsigned long **syscall_table)
 	syscall_table[__NR_socketpair] = (unsigned long *)ref_sys_socketpair;
 	syscall_table[__NR_setsockopt] = (unsigned long *)ref_sys_setsockopt;
 	syscall_table[__NR_getsockopt] = (unsigned long *)ref_sys_getsockopt;
+	syscall_table[__NR_execve] = (unsigned long *)ref_sys_execve;
 	syscall_table[__NR_exit] = (unsigned long *)ref_sys_exit;
 	syscall_table[__NR_wait4] = (unsigned long *)ref_sys_wait4;
 	syscall_table[__NR_kill] = (unsigned long *)ref_sys_kill;
