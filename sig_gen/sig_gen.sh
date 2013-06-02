@@ -926,7 +926,7 @@ function get_syscall_index
 			return 311
 			;;
 	esac
-	return -1
+	return 1000
 }
 
 OUTFILE=
@@ -981,12 +981,15 @@ for (( i=0; i < ${#SYSCALLS[@]}; i++))
 do
 	get_syscall_index ${SYSCALLS[$i]}
 	ANS=$?
-	if [ $SYS_NUM_WRITTEN -eq 0 -a $ANS -ne -1 ]
+	if [ $ANS -ne 1000 ]
 	then
-		echo -n "$ANS" > $OUTFILE
-		SYS_NUM_WRITTEN=1
-	else
-		echo -n ",$ANS" >> $OUTFILE
+		if [ $SYS_NUM_WRITTEN -eq 0 ]
+		then
+			echo -n "$ANS" > $OUTFILE
+			SYS_NUM_WRITTEN=1
+		else
+			echo -n ",$ANS" >> $OUTFILE
+		fi
 	fi
 done
 

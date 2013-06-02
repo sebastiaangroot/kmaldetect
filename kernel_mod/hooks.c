@@ -4695,8 +4695,8 @@ void reg_hooks(unsigned long **syscall_table)
 	syscall_table[__NR_setsockopt] = (unsigned long *)hook_sys_setsockopt;
 	ref_sys_getsockopt = (void *)syscall_table[__NR_getsockopt];
 	syscall_table[__NR_getsockopt] = (unsigned long *)hook_sys_getsockopt;
-	ref_sys_execve = (void *)syscall_table[__NR_execve];
-	syscall_table[__NR_execve] = (unsigned long *)hook_sys_execve;
+	/*ref_sys_execve = (void *)syscall_table[__NR_execve];
+	syscall_table[__NR_execve] = (unsigned long *)hook_sys_execve;*/
 	ref_sys_exit = (void *)syscall_table[__NR_exit];
 	syscall_table[__NR_exit] = (unsigned long *)hook_sys_exit;
 	ref_sys_wait4 = (void *)syscall_table[__NR_wait4];
@@ -5216,7 +5216,7 @@ void unreg_hooks(unsigned long **syscall_table)
 	syscall_table[__NR_socketpair] = (unsigned long *)ref_sys_socketpair;
 	syscall_table[__NR_setsockopt] = (unsigned long *)ref_sys_setsockopt;
 	syscall_table[__NR_getsockopt] = (unsigned long *)ref_sys_getsockopt;
-	syscall_table[__NR_execve] = (unsigned long *)ref_sys_execve;
+	//syscall_table[__NR_execve] = (unsigned long *)ref_sys_execve;
 	syscall_table[__NR_exit] = (unsigned long *)ref_sys_exit;
 	syscall_table[__NR_wait4] = (unsigned long *)ref_sys_wait4;
 	syscall_table[__NR_kill] = (unsigned long *)ref_sys_kill;
