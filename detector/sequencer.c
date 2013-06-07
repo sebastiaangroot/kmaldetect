@@ -55,7 +55,7 @@ static void handle_endstate(ENDSTATE endstate)
 {
 	int first_end = find_syscall(endstate.state, 0, syscalls_len - 1);
 	int second_end = find_syscall(endstate.state, first_end, syscalls_len - 1);
-
+	
 	if (first_end < 0 || second_end < 0)
 	{
 		printf("Endstate %i (%s)  had no two hits\n", endstate.state, endstate.filename);
@@ -74,6 +74,7 @@ void parse_endstates(void)
 
 	for (i = 0; i < endstates_len; i++)
 	{
+		printf("[%i/%i] Finding sequences for %s\n", i + 1, endstates_len, endstates[i].filename);
 		num_occurences = 0;
 		for (j = 0; j < syscalls_len; j++)
 		{

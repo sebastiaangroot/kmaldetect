@@ -114,6 +114,12 @@ void read_syscalls_from_file(char *filename)
 	char buffer[200];
 	int buffer_p;
 	int ret;
+	unsigned long count = 0;
+	unsigned long num_syscalls;
+	struct stat st;
+
+	stat(filename, &st);
+	num_syscalls = (unsigned long)(st.st_size / BYTES_PER_SYSCALL);
 
 	syscall.sys_id = 0;
 	syscall.inode = 0;
@@ -160,8 +166,16 @@ void read_syscalls_from_file(char *filename)
 		syscall.states = NULL;
 		syscall.states_len = 0;
 		handle_input(&syscall);
+		count++;
+
+		if (num_syscalls % count == 0)
+		{
+			printf("progress: %lu\n", count);
+		}
+
 		if (ret == 0)
 			break;
+
 	}
 }
 
