@@ -11,7 +11,7 @@ static int find_syscall(int state, int from, int to)
 {
 	int i, j;
 	
-	for (i = from; i <=	to; i++)
+	for (i = from; i <= to; i++)
 	{
 		for (j = 0; j < syscalls[i].states_len; j++)
 		{
@@ -53,18 +53,19 @@ static int syscalls_match(int first, int second)
 
 static void handle_endstate(ENDSTATE endstate)
 {
-	int first_end = find_syscall(endstate.state, 0, syscalls_len - 1);
-	int second_end = find_syscall(endstate.state, first_end, syscalls_len - 1);
+	int first_end = -1;
+	int second_end;
 	
-	if (first_end < 0 || second_end < 0)
+	while ((first_end = find_syscall(endstate.state, first_end + 1, syscalls_len - 1)) != -1)
 	{
-		printf("Endstate %i (%s)  had no two hits\n", endstate.state, endstate.filename);
-		return;
-	}
-
-	if (syscalls_match(first_end, second_end))
-	{
-		printf("Endstate %i (%s) matched!\n\tSyscall ID: %i\n\tInode number: %lu || %lu\n\tPID: %i || %i\n\tMem Loc: %lu || %lu\n", endstate.state, endstate.filename, syscalls[first_end].sys_id, syscalls[first_end].inode, syscalls[second_end].inode, syscalls[first_end].pid, syscalls[second_end].pid, syscalls[first_end].mem_loc, syscalls[second_end].mem_loc);
+		second_end = first_end;
+		while ((second_end = find_syscall(endstate.state, second_end + 1, syscalls_len - 1)) != -1)
+		{
+			if (syscalls_match(first_end, second_end))
+			{
+				printf("Endstate %i (%s) matched!\n\tIndexes: %i / %i\n\tSyscall ID: %i\n\tInode number: %lu || %lu\n\tPID: %i || %i\n\tMem Loc: %lu || %lu\n", endstate.state, endstate.filename, first_end, second_end, syscalls[first_end].sys_id, syscalls[first_end].inode, syscalls[second_end].inode, syscalls[first_end].pid, syscalls[second_end].pid, syscalls[first_end].mem_loc, syscalls[second_end].mem_loc);
+			}
+		}
 	}
 }
 

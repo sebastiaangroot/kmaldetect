@@ -116,7 +116,9 @@ void read_syscalls_from_file(char *filename)
 	int ret;
 	unsigned long count = 0;
 	unsigned long num_syscalls;
+	int percentage;
 	struct stat st;
+	int showedstatus = 0;
 
 	stat(filename, &st);
 	num_syscalls = (unsigned long)(st.st_size / BYTES_PER_SYSCALL);
@@ -167,10 +169,17 @@ void read_syscalls_from_file(char *filename)
 		syscall.states_len = 0;
 		handle_input(&syscall);
 		count++;
+		
+		percentage = (int)(((double)count / (double)num_syscalls) * 100);
 
-		if (num_syscalls % count == 0)
+		if (percentage % 10 == 0 && percentage != 0 && !showedstatus)
 		{
-			printf("progress: %lu\n", count);
+			showedstatus = 1;
+			printf("progress: %i%%\n", percentage);
+		}
+		else if (percentage % 10 != 0)
+		{
+			showedstatus = 0;
 		}
 
 		if (ret == 0)
