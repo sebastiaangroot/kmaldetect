@@ -11,9 +11,15 @@ typedef struct
 	unsigned long inode;
 	pid_t pid;
 	unsigned long mem_loc;
-	int *state_list;
-	int state_n;
+	int *states;
+	int states_len;
 } SYSCALL;
+
+typedef struct
+{
+	int state;
+	char *filename;
+} ENDSTATE;
 
 extern void *malrealloc(void *ptr, size_t size);
 extern void *malcalloc(size_t num, size_t size);

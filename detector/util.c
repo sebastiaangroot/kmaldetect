@@ -44,11 +44,11 @@ void malfree(void *ptr)
 
 #include "util.h"
 extern int **transition_matrix;
-extern int state_n;
+extern int tm_states_len;
 void dbg_print_transition_matrix(void)
 {
 	int i, j;
-	for (i = 0; i < state_n; i++)
+	for (i = 0; i < tm_states_len; i++)
 	{
 		printf("[%i]:{", i);
 		for (j = 0; j < NUM_SYSCALLS; j++)
@@ -68,11 +68,11 @@ void dbg_print_transition_matrix(void)
 
 #include "parser.h"
 extern ENDSTATE *endstates;
-extern int endstate_n;
+extern int endstates_len;
 void dbg_print_endstates(void)
 {
 	int i;
-	for (i = 0; i < endstate_n; i++)
+	for (i = 0; i < endstates_len; i++)
 	{
 		printf("Endstate %i:\n\tState: %i\n\tFilename: %s\n", i, endstates[i].state, endstates[i].filename);
 	}

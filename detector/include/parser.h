@@ -1,15 +1,16 @@
 #ifndef PARSER_H
 #define PARSER_H
 
-typedef struct
-{
-	int state;
-	char *filename;
-} ENDSTATE;
+#include "util.h"
 
 extern int **transition_matrix;
-extern int state_n;
+extern int tm_states_len;
 extern ENDSTATE *endstates;
-extern int endstate_n;
+extern int endstates_len;
+extern SYSCALL *syscalls;
+extern int syscalls_len;
+
+extern void init_parser(void);
+extern void read_syscalls_from_file(char *filename);
 
 #endif

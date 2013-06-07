@@ -7,9 +7,9 @@
 #include "parser.h"
 
 extern int **transition_matrix;
-extern int state_n;
+extern int tm_states_len;
 extern ENDSTATE *endstates;
-extern int endstate_n;
+extern int endstates_len;
 
 static SIGNATURE *load_signature(char *filename)
 {
@@ -57,15 +57,15 @@ static int add_nullstate(void)
 	if (!transition_matrix)
 	{
 		transition_matrix = malmalloc(sizeof(int *));
-		state_n = 1;
+		tm_states_len = 1;
 	}
 	else
 	{
-		transition_matrix = malrealloc(transition_matrix, sizeof(int *) * (state_n + 1));
-		state_n++;
+		transition_matrix = malrealloc(transition_matrix, sizeof(int *) * (tm_states_len + 1));
+		tm_states_len++;
 	}
-	transition_matrix[state_n - 1] = state_array;
-	return state_n - 1;
+	transition_matrix[tm_states_len - 1] = state_array;
+	return tm_states_len - 1;
 }
 
 static void add_endstate(int state, char *signame)
@@ -75,21 +75,21 @@ static void add_endstate(int state, char *signame)
 		endstates = malcalloc(1, sizeof(ENDSTATE));
 		endstates[0].state = state;
 		endstates[0].filename = signame;
-		endstate_n = 1;
+		endstates_len = 1;
 	}
 	else
 	{
-		endstates = malrealloc(endstates, sizeof(ENDSTATE) * (endstate_n + 1));
-		endstates[endstate_n].state = state;
-		endstates[endstate_n].filename = signame;
-		endstate_n++;
+		endstates = malrealloc(endstates, sizeof(ENDSTATE) * (endstates_len + 1));
+		endstates[endstates_len].state = state;
+		endstates[endstates_len].filename = signame;
+		endstates_len++;
 	}
 }
 
 static int handle_input(int state_cur, int sys_id)
 {
 	int state_nxt;
-	while (state_cur >= state_n)
+	while (state_cur >= tm_states_len)
 	{
 		add_nullstate();
 	}
