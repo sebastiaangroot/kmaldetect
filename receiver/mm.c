@@ -86,15 +86,8 @@ int store_syscall(SYSCALL *input)
 {
 	if (block_n == block_lim)
 	{
-		int i;
 		write_blocks_to_file();
 		exit(1);
-//		for (i = 0; i < block_n; i++)
-//		{
-//			free(block_p[block_n]);
-//		}
-//		free(block_p);
-//		mm_init();
 	}
 
 	if (syscall_n < SYSCALLS_PER_BLOCK)

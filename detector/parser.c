@@ -2,9 +2,11 @@
 #include "parser.h"
 
 int **transition_matrix;
-int state_n;
+int tm_states_len;
 ENDSTATE *endstates;
-int endstate_n;
+int endstates_len;
+SYSCALL *syscalls;
+int syscalls_len;
 
 
 void parse(void)

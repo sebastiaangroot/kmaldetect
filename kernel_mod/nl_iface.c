@@ -65,6 +65,7 @@ static void recv_msg(struct sk_buff *skb)
 		return;
 	}
 
+	printk(KERN_INFO "[kmaldetect] Received maldetect-syn\n");
 	if ((pid = nlh->nlmsg_pid) <= 0)
 	{
 		printk(KERN_WARNING "[kmaldetect] Received invalid PID from maldetect-syn message: %i\n", pid);

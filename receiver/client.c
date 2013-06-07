@@ -21,28 +21,14 @@
 * - Keep listening for mesages that send a SYSCALL struct, and upon receiving them, store them using the mm.c's functions
 * */
 extern int block_lim;
-int main(int argc, char **argv)
+int main(void)
 {
 	struct sockaddr_nl src_addr, dest_addr;
 	struct nlmsghdr *nlh = NULL;
 	struct iovec iov;
 	int sock_fd;
 	struct msghdr msg;
-	unsigned long long count = 0;
-
-	if (argc == 2)
-	{
-		block_lim = atoi(argv[1]);
-		if (block_lim <= 0)
-		{
-			block_lim = 2048;
-		}
-	}
-	else
-	{
-		block_lim = 2048;
-	}
-
+	block_lim = 4096;
 
 	//Check if we're running as root
 	if (getuid() != 0)
@@ -113,11 +99,11 @@ int main(int argc, char **argv)
 	{
 		recvmsg(sock_fd, &msg, 0);
 		SYSCALL *data = (SYSCALL *)NLMSG_DATA(nlh);
-		printf("%i,%lu,%i,%llu\n", data->sys_id, data->inode, data->pid, count);
+		printf("%i,%lu,%i\n", data->sys_id, data->inode, data->pid);
 		store_syscall(data);
 		memset(NLMSG_DATA(nlh), 0, sizeof(SYSCALL));
-		count++;
 	}
 
 	return 0;
 }
+
