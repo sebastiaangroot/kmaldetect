@@ -7,7 +7,8 @@
 #include "util.h"
 #include "parser.h"
 
-int **transition_matrix = NULL;; //The rule tree we use to traverse a the signatures
+int **transition_matrix = NULL; //The rule tree we use to traverse a the signatures
+int **reverse_transition_matrix = NULL;
 int tm_states_len = 0;
 ENDSTATE *endstates = NULL; //The endstates, with their number and filename
 int endstates_len = 0;
@@ -186,6 +187,52 @@ void read_syscalls_from_file(char *filename)
 			break;
 
 	}
+}
+
+void remove_syscall(int i)
+{
+	memmove(syscalls + (sizeof(SYSCALL) * i), syscalls + (sizeof(SYSCALL) * (i + 1)), (syscalls_len - i - 1) * sizeof(SYSCALL));
+	syscalls_len--;
+}
+
+void keep_duplicates(void)
+{
+	int i, j, k, l;
+	int duplicate;
+
+	printf("SYSCALLS_LEN PRE-FILTER: %i\n", syscalls_len);
+
+	for (i = 0; i < syscalls_len; i++)
+	{
+		duplicate = 0;
+		printf("Progress: %i / %i\n", i, syscalls_len);
+		for (j = 0; j < syscalls_len; j++)
+		{
+			if (i == j)
+				continue;
+
+			if (syscalls[i].sys_id == syscalls[j].sys_id && (syscalls[i].pid == syscalls[j].pid || syscalls[i].inode == syscalls[j].inode))
+			{
+				for (k = 0; k < syscalls[i].states_len; k++)
+				{
+					for (l = 0; l < syscalls[j].states_len; l++)
+					{
+						if (syscalls[i].states[k] == syscalls[j].states[l])
+						{
+							duplicate = 1;
+						}
+					}
+				}
+			}
+		}
+		if (!duplicate)
+		{
+			remove_syscall(i);
+			i--;
+		}
+	}
+
+	printf("SYSCALLS_LEN POST-FILTER: %i\n", syscalls_len);
 }
 
 void init_parser(void)

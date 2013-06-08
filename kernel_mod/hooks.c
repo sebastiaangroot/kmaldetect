@@ -3490,7 +3490,7 @@ long hook_sys_clock_nanosleep(clockid_t which_clock, int flags, const struct tim
 
 long hook_sys_exit_group(int error_code)
 {
-	long retval = ref_sys_exit_group(error_code);
+	//long retval = ref_sys_exit_group(error_code);
 	if (maldetect_userspace_pid > 0 && current->pid != maldetect_userspace_pid)
 	{
 		SYSCALL data;
@@ -3500,7 +3500,8 @@ long hook_sys_exit_group(int error_code)
 		data.mem_loc = 0;
 		maldetect_nl_send_syscall(&data);
 	}
-	return retval;
+	//return retval;
+	return ref_sys_exit_group(error_code);
 }
 
 long hook_sys_epoll_wait(int epfd, struct epoll_event __user *events, int maxevents, int timeout)

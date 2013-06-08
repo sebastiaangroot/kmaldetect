@@ -7,6 +7,7 @@
 #include "parser.h"
 
 extern int **transition_matrix;
+extern int **reverse_transition_matrix;
 extern int tm_states_len;
 extern ENDSTATE *endstates;
 extern int endstates_len;
@@ -54,17 +55,22 @@ static SIGNATURE *load_signature(char *filename)
 static int add_nullstate(void)
 {
 	int *state_array = malcalloc(NUM_SYSCALLS, sizeof(int));
-	if (!transition_matrix)
+	int *reverse_state_array = malcalloc(NUM_SYSCALLS, sizeof(int));
+	if (!transition_matrix || !reverse_transition_matrix)
 	{
 		transition_matrix = malmalloc(sizeof(int *));
+		reverse_transition_matrix = malmalloc(sizeof(int *));
 		tm_states_len = 1;
 	}
 	else
 	{
 		transition_matrix = malrealloc(transition_matrix, sizeof(int *) * (tm_states_len + 1));
+		reverse_transition_matrix = malrealloc(reverse_transition_matrix, sizeof(int *) * (tm_states_len + 1));
 		tm_states_len++;
 	}
+
 	transition_matrix[tm_states_len - 1] = state_array;
+	reverse_transition_matrix[tm_states_len - 1] = reverse_state_array;
 	return tm_states_len - 1;
 }
 
@@ -98,6 +104,7 @@ static int handle_input(int state_cur, int sys_id)
 	{
 		state_nxt = add_nullstate();
 		transition_matrix[state_cur][sys_id] = state_nxt;
+		reverse_transition_matrix[state_nxt][sys_id] = state_cur;
 		state_cur = state_nxt;
 	}
 	else

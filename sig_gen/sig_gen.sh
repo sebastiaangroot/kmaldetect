@@ -973,7 +973,9 @@ done
 
 #Generate the strace, strip everything but the syscall name and recode the syscall names to a sequence of syscall numbers
 strace $STRACE_ARGS 2> $OUTFILE.strace
+sleep 1
 cat $OUTFILE.strace | cut -d "(" -f 1 > $OUTFILE.tmp
+sleep 1
 
 SYSCALLS=(`cat $OUTFILE.tmp`)
 
@@ -993,4 +995,4 @@ do
 	fi
 done
 
-rm -f $OUTFILE.strace $OUTFILE.tmp
+#rm -f $OUTFILE.strace $OUTFILE.tmp
