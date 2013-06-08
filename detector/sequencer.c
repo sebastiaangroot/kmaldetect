@@ -24,7 +24,7 @@ static int find_syscall(int state, int from, int to)
 	return -1;
 }
 
-static int find_syscall_reverse(int state, int from, int to)
+/*static int find_syscall_reverse(int state, int from, int to)
 {
 	int i, j;
 
@@ -39,7 +39,7 @@ static int find_syscall_reverse(int state, int from, int to)
 		}
 	}
 	return -1;
-}
+}*/
 
 static int syscalls_match(int first, int second)
 {

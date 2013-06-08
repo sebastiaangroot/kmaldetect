@@ -28,7 +28,7 @@ int find_syscall_reverse(int state, int from, int to)
 
 void print_syscall(SYSCALL syscall, int state)
 {
-	fprintf(stderr, "STATE %i = %i:%lu:%i:%lu", state, syscall.sys_id, syscall.inode, syscall.pid, syscall.mem_loc);
+	fprintf(stderr, "STATE %i = %i:%lu:%i:%lu\n", state, syscall.sys_id, syscall.inode, syscall.pid, syscall.mem_loc);
 }
 
 int match_syscalls(SYSCALL sys1, SYSCALL sys2)
@@ -50,7 +50,7 @@ int find_statematch(int state, int seq1from, int seq2from, int first_endstate){
 	{
 		return 0;
 	}
-	real_first_endstate = (first_endstate == -1 ? call1 : first_endstate);
+	real_first_endstate = (first_endstate == -1 ? call1 + 1: first_endstate);
 
 	call2 = find_syscall_reverse(state, seq2from, real_first_endstate);
 	while (call1 != -1)
@@ -60,16 +60,16 @@ int find_statematch(int state, int seq1from, int seq2from, int first_endstate){
 			if (match_syscalls(syscalls[call1], syscalls[call2]))
 			{
 //DEBUGGING INFO===============================
-				if (first_endstate == -1) //Indication that we're at the start of the sequence matching. In other words, we're at the endstate
-				{
-					fprintf(stderr, "Matching endstate %i with indexes %i and %i\n", state, call1, call2);
-				}
+				//if (first_endstate == -1)
+				//{
+				//	fprintf(stderr, "Matching endstate %i with indexes %i and %i\n", state, call1, call2);
+				//}
 //DEBUGGING INFO===============================
-				if (state > 1)
+				if (state > 2)
 				{
 					if (find_statematch(reverse_transition_matrix[state][syscalls[call2].sys_id], call1 - 1, call2 - 1, real_first_endstate) == DO_PRINT)
 					{
-						fprintf(stderr, "###############################\n");
+						fprintf(stderr, "\n###############################\n");
 						print_syscall(syscalls[call1], state);
 						fprintf(stderr, "\n");
 						print_syscall(syscalls[call2], state);
@@ -88,6 +88,8 @@ int find_statematch(int state, int seq1from, int seq2from, int first_endstate){
 			call2 = find_syscall_reverse(state, call2 - 1, real_first_endstate);
 		}
 		call1 = find_syscall_reverse(state, call1 - 1, 0);
+		real_first_endstate = (first_endstate == -1 ? call1 + 1: first_endstate);
+
 		call2 = find_syscall_reverse(state, seq2from, real_first_endstate);
 	}
 	return 0;

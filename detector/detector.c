@@ -9,8 +9,10 @@
 extern int syscalls_len;
 extern SYSCALL *syscalls;
 extern ENDSTATE *endstates;
+extern int endstates_len;
 int main(int argc, char **argv)
 {
+	int i, j, k;
 	if (argc != 2)
 	{
 		fprintf(stderr, "Usage: %s <kmaldetect trace file>\n", argv[0]);
@@ -23,6 +25,20 @@ int main(int argc, char **argv)
 	printf("Loading syscall trace...\n");
 	init_parser();
 	read_syscalls_from_file(argv[1]);
+
+	for (i = 0; i < endstates_len; i++)
+	{
+		for (j = 0; j < syscalls_len; j++)
+		{
+			for (k = 0; k < syscalls[j].states_len; k++)
+			{
+				if (syscalls[j].states[k] == endstates[i].state)
+				{
+					printf("Ind %i, %lu reached endstate of %s\n", j, syscalls[j].inode, endstates[i].filename);
+				}
+			}
+		}
+	}
 
 	//keep_duplicates();
 	find_statematch(endstates->state, syscalls_len - 2, syscalls_len - 1, -1);

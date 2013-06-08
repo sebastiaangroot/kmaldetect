@@ -176,7 +176,7 @@ void read_syscalls_from_file(char *filename)
 		if (percentage % 10 == 0 && percentage != 0 && !showedstatus)
 		{
 			showedstatus = 1;
-			printf("progress: %i%%\n", percentage);
+			printf("Progress: %i%%\n", percentage);
 		}
 		else if (percentage % 10 != 0)
 		{
