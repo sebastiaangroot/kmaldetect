@@ -4,7 +4,6 @@
 #include "util.h"
 #include "sequencer.h"
 #include "parser.h"
-#include "sequence_algorithm.h"
 
 extern int syscalls_len;
 extern SYSCALL *syscalls;

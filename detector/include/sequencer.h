@@ -1,6 +1,6 @@
 #ifndef SEQUENCER_H
 #define SEQUENCER_H
 
-extern void parse_endstates(void);
+int find_statematch(int state, int seq1from, int seq2from, int first_endstate);
 
 #endif
