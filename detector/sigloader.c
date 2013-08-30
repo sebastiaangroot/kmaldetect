@@ -1,3 +1,15 @@
+/*
+ * Contains the code responsible for the signature loading phase. It loads all signatures in the "signatures" subfolder into
+ * the int **transition_matrix, int **reverse_transition_matrix and adds endstates to the ENDSTATE *endstates array.
+ *
+ * Copyright (c) 2013 Sebastiaan Groot
+ *
+ * This program is free software; you can redistribute it and/or modify it
+ * under the terms of the GNU General Public License as published by the Free
+ * Software Foundation; either version 2 of the License, or (at your option) 
+ * any later version.
+ */
+
 #include <stdio.h>
 #include <glob.h>
 #include <string.h>

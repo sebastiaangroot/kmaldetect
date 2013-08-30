@@ -1,5 +1,19 @@
-//The entire sequence must match. We're not looking for matches on idividual syscalls, we're looking at a chained sequence.
-//This implementation uses a recursive matching algorithm that searches for candidate syscalls for this state, matches them, and on a match, calls itself to search for candidate syscalls in the previous state. While doing this, it only searches for syscalls in the allowed ranges for its part in the sequence (for example, a syscall in sequence 2 may never have an index number lower than the endstate syscall in sequence 1).
+/*
+ * Responsible for the sequence matching phase. While looking for a sequence, the entire sequence must match. We're not looking for matches
+ * on individual syscalls, we're looking at a chained sequence.
+ *
+ * This implementation uses a recursive matching algorithm that searches for candidate syscalls for this state and matches them.
+ * On a match, it calls itself to search for candidate syscalls in the previous state. While doing this, it only searches for 
+ * syscalls in the allowed ranges for its part in the sequence (for example, a syscall in sequence 2 may never have an index number
+ * lower than the endstate syscall in sequence 1).
+ *
+ * Copyright (c) 2013 Sebastiaan Groot
+ *
+ * This program is free software; you can redistribute it and/or modify it
+ * under the terms of the GNU General Public License as published by the Free
+ * Software Foundation; either version 2 of the License, or (at your option) 
+ * any later version.
+ */
 
 #include <stdio.h>
 #include "util.h"

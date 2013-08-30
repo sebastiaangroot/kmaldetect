@@ -1,3 +1,14 @@
+/*
+ * The netlink interface for the KMaldetect LKM. It contains init and exit functions for the interface, as well as several receive and send functions.
+ *
+ * Copyright (c) 2013 Sebastiaan Groot
+ *
+ * This program is free software; you can redistribute it and/or modify it
+ * under the terms of the GNU General Public License as published by the Free
+ * Software Foundation; either version 2 of the License, or (at your option) 
+ * any later version.
+ */
+
 #include <linux/kernel.h>
 #include <linux/module.h>
 #include <linux/skbuff.h>

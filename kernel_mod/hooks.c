@@ -1,4 +1,15 @@
-﻿#include <asm/unistd.h>
+﻿/*
+ * Contains system-call references, hook functions and functions to replace the function pointers in the sys_call_table.
+ *
+ * Copyright (c) 2013 Sebastiaan Groot
+ *
+ * This program is free software; you can redistribute it and/or modify it
+ * under the terms of the GNU General Public License as published by the Free
+ * Software Foundation; either version 2 of the License, or (at your option) 
+ * any later version.
+ */
+
+#include <asm/unistd.h>
 #include <linux/syscalls.h>
 #include <asm/thread_info.h>
 #include "nl_iface.h"
