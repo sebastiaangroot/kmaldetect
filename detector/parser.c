@@ -83,23 +83,28 @@ static void handle_input(SYSCALL *syscall)
 		if ((state = syscall_encoding_table[syscall->sys_id][i]) != 0)
 		{
 			update_syscall_encoding_table(state);
-			if (syscall->states_len == 0)
+			if (syscall->states_n < STATES_BUF)
 			{
-				syscall->states = bmalloc(sizeof(int), 4 * sizeof(int));
-				syscall->states[0] = state;
-				syscall->states_len = 1;
+				syscall->states_a[syscall->states_n] = state;
+				syscall->states_n++;
 			}
-			else
+			else if (syscall->states_n == STATES_BUF)
 			{
-				syscall->states = brealloc(syscall->states, (syscall->states_len + 1) * sizeof(int));
-				syscall->states[syscall->states_len] = state;
-				syscall->states_len++;
+				syscall->states_p = bmalloc(sizeof(int), STATES_BUF * sizeof(int));
+				syscall->states_p[syscall->states_n - STATES_BUF] = state;
+				syscall->states_n++;
+			}
+			else //syscall->states_n > STATES_BUF
+			{
+				syscall->states_p = brealloc(syscall->states_p, (syscall->states_n - STATES_BUF + 1) * sizeof(int));
+				syscall->states_p[syscall->states_n - STATES_BUF] = state;
+				syscall->states_n++;
 			}
 		}
 	}
 
 	//No states were reached, we're not saving this syscall
-	if (syscall->states_len == 0)
+	if (syscall->states_n == 0)
 	{
 		return;
 	}
@@ -135,13 +140,6 @@ void read_syscalls_from_file(char *filename)
 	stat(filename, &st);
 	num_syscalls = (unsigned long)(st.st_size / BYTES_PER_SYSCALL);
 
-	syscall.sys_id = 0;
-	syscall.inode = 0;
-	syscall.pid = 0;
-	syscall.mem_loc = 0;
-	syscall.states = NULL;
-	syscall.states_len = 0;
-
 	fd = open(filename, O_RDONLY);
 	if (!fd)
 	{
@@ -151,6 +149,13 @@ void read_syscalls_from_file(char *filename)
 
 	while(1)
 	{
+		syscall.sys_id = 0;
+		syscall.inode = 0;
+		syscall.pid = 0;
+		syscall.mem_loc = 0;
+		syscall.states_p = NULL;
+		syscall.states_n = 0;
+		memset(syscall.states_a, 0, sizeof(int) * STATES_BUF);
 		memset(buffer, 0, 100);
 		buffer_p = 0;
 		while(1)
@@ -177,8 +182,6 @@ void read_syscalls_from_file(char *filename)
 			}
 		}
 		sscanf(buffer, "%i:%lu:%i:%lu", &syscall.sys_id, &syscall.inode, &syscall.pid, &syscall.mem_loc);
-		syscall.states = NULL;
-		syscall.states_len = 0;
 		handle_input(&syscall);
 		count++;
 		
@@ -206,6 +209,7 @@ void remove_syscall(int i)
 	syscalls_len--;
 }
 
+/*
 void keep_duplicates(void)
 {
 	int i, j, k, l;
@@ -245,6 +249,7 @@ void keep_duplicates(void)
 
 	printf("SYSCALLS_LEN POST-FILTER: %i\n", syscalls_len);
 }
+*/
 
 void init_parser(void)
 {

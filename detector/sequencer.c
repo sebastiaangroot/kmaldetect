@@ -29,11 +29,21 @@ int find_syscall_reverse(int state, int from, int to)
 	int i, j;
 	for (i = from; i >= to; i--)
 	{
-		for (j = 0; j < syscalls[i].states_len; j++)
+		for (j = 0; j < syscalls[i].states_n; j++)
 		{
-			if (syscalls[i].states[j] == state)
+			if (j < STATES_BUF)
 			{
-				return i;
+				if (syscalls[i].states_a[j] == state)
+				{
+					return i;
+				}
+			}
+			else
+			{
+				if (syscalls[i].states_p[j - STATES_BUF] == state)
+				{
+					return i;
+				}
 			}
 		}
 	}
