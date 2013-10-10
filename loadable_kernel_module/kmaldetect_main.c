@@ -15,6 +15,7 @@
 #include <linux/unistd.h>
 #include <asm/syscall.h>
 #include <linux/syscalls.h>
+#include <linux/interrupt.h>
 #include "hooks.h"
 #include "nl_iface.h"
 
@@ -81,9 +82,11 @@ static int __init mod_start(void)
 		return -1;
 	}
 
+	disable_irq(0);
 	disable_page_protection();
 	reg_hooks(ref_sys_call_table);
 	enable_page_protection();
+	enable_irq(0);
 
 	printk(KERN_INFO "[kmaldetect] Initiated\n");
 	return 0;
