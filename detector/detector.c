@@ -34,7 +34,9 @@ int main(int argc, char **argv)
 
 	printf("Loading syscall trace...\n");
 	init_parser();
-	read_syscalls_from_file(argv[1]);
+	//read_syscalls_from_file(argv[1]);
+	tmp_syscall_loader(argv[1]);
+	tmp_syscall_parser();
 
 	for (i = 0; i < endstates_len; i++)
 	{
