@@ -137,7 +137,7 @@ def get_sysid(funct, con_unistd):
 				output = output[output.find('\t'):].replace('\t', '')
 				return output
 			else:
-				output = con_unsitd[i - 1]
+				output = con_unistd[i - 1]
 				output = output[output.find(' ', 10):].replace(' ', '')
 				return output
 	return 'ERROR'
