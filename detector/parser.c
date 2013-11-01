@@ -120,70 +120,63 @@ static void handle_input(SYSCALL *syscall)
 
 void read_syscalls_from_file(char *filename)
 {
-	int fd;
-	char c;
 	SYSCALL syscall;
-	char buffer[200];
-	int buffer_p;
-	int ret;
-	unsigned long count = 0;
-	unsigned long num_syscalls;
-	int percentage;
+	int fd;
+	int cur, end;
+	char *file_buffer;
+	long file_buffer_p;
 	struct stat st;
-	int showedstatus = 0;
+	int num_syscalls, count, percentage, showedstatus;
 
 	stat(filename, &st);
 	num_syscalls = (unsigned long)(st.st_size / BYTES_PER_SYSCALL);
-
-	syscall.sys_id = 0;
-	syscall.inode = 0;
-	syscall.pid = 0;
-	syscall.mem_loc = 0;
-	syscall.states = NULL;
-	syscall.states_len = 0;
+	if (st.st_size > FILEBUF_LIM)
+	{
+		fprintf(stderr, "Filesize limit of 2GB exceeded.\n");
+		exit(1);
+	}
 
 	fd = open(filename, O_RDONLY);
 	if (!fd)
 	{
-		fprintf(stderr, "File error.\n");
+		fprintf(stderr, "Error opening file.\n");
 		exit(1);
 	}
 
-	while(1)
-	{
-		memset(buffer, 0, 100);
-		buffer_p = 0;
-		while(1)
-		{
-			ret = read(fd, &c, 1);
-			if (ret == -1)
-			{
-				fprintf(stderr, "Read error\n");
-				exit(1);
-			}
-			else if (ret == 0)
-			{
-				break;
-			}
+	file_buffer = malmalloc(sizeof(char) * (st.st_size));
+	file_buffer_p = read(fd, file_buffer, st.st_size);
+	cur = 0;
 
-			if (c == '>')
-			{
-				break;
-			}
-			else
-			{
-				buffer[buffer_p] = c;
-				buffer_p++;
-			}
-		}
-		sscanf(buffer, "%i:%lu:%i:%lu", &syscall.sys_id, &syscall.inode, &syscall.pid, &syscall.mem_loc);
+	while (cur < file_buffer_p)
+	{
+		end = cur;
+
+		//int sys_id
+		while (file_buffer[end] != ':') end++;
+		syscall.sys_id = (int)strtol(file_buffer+cur, NULL, 10);
+		cur = ++end;
+
+		//ulong inode
+		while (file_buffer[end] != ':') end++;
+		syscall.inode = (unsigned long)strtol(file_buffer+cur, NULL, 10);
+		cur = ++end;
+
+		//pid_t pid
+		while(file_buffer[end] != ':') end++;
+		syscall.pid = (pid_t)strtol(file_buffer+cur, NULL, 10);
+		cur = ++end;
+
+		//ulong mem_loc
+		while(end <= file_buffer_p && file_buffer[end] != '>') end++;
+		syscall.mem_loc = (unsigned long)strtol(file_buffer+cur, NULL, 10);
+
+		cur = ++end;
 		syscall.states = NULL;
 		syscall.states_len = 0;
 		handle_input(&syscall);
 		count++;
-		
-		percentage = (int)(((double)count / (double)num_syscalls) * 100);
 
+		percentage = (int)(((double)count / (double)num_syscalls) * 100);
 		if (percentage % 10 == 0 && percentage != 0 && !showedstatus)
 		{
 			showedstatus = 1;
@@ -193,10 +186,6 @@ void read_syscalls_from_file(char *filename)
 		{
 			showedstatus = 0;
 		}
-
-		if (ret == 0)
-			break;
-
 	}
 }
 
