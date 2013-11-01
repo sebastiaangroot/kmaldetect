@@ -187,6 +187,7 @@ void read_syscalls_from_file(char *filename)
 			showedstatus = 0;
 		}
 	}
+	malfree(file_buffer);
 }
 
 void remove_syscall(int i)
