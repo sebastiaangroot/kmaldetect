@@ -14,8 +14,8 @@
  * any later version.
  */
 
-#include <stdlib.h> // Memory management functions
-#include <string.h> // memset
+#include <stdlib.h>
+#include <string.h>
 #include <pthread.h> //For mutex (un)locking
 
 //MM_REG contains the base address of the allocated space, the space that is currently allocated and the block size with which to increment the size if need be
@@ -46,7 +46,6 @@ static int addr_to_index(void *ptr)
 	return -1;
 }
 
-//Not sure if causing problems. It shouldn't be. All it does is finding MM_REG records with their base set to zero (our marker for a removed MM_REG), then copying the contents of the last MM_REG in mm_reg_list to the "removed" MM_REG and decrementing the mm_reg_list_n size counter by one.
 static void defrag_list(void)
 {
 	int i, last_ind;
@@ -64,14 +63,12 @@ static void defrag_list(void)
 	}
 }
 
-//This reallocs mm_reg_list with an increased size of internal_block_size. If it fails, mm_reg_list is unaffected and -1 is returned. Otherwise, mm_reg_list is set to the new pointer and 0 is returned.
 static int allocate_mm_block(void)
 {
 	MM_REG *tmp_list;
 	
 	defrag_list();
-
-	//If mm_reg_list_n * sizeof(MM_REG) (the amount of space actively used by MM_REG records + 1) is smaller or equal to the amount of space allocated for mm_reg_list, we don't have to do anything. Return 0.
+	
 	if (mm_reg_list_n * sizeof(MM_REG) <= internal_alloc_size)
 		return 0;
 	
@@ -79,8 +76,6 @@ static int allocate_mm_block(void)
 	if (!tmp_list)
 		return -1;
 
-	//realloc went OK. Update internal_block_size to the new, increased size and assign the tmp_list mem pointer to mm_reg_list.
-	internal_alloc_size += internal_block_size;
 	mm_reg_list = tmp_list;
 	return 0;
 }
@@ -221,10 +216,7 @@ int b_mm_init(void)
 	return 0;
 }
 
-/*
- * Can be called to free the resources bmalloc takes up (a pthread_mutex_t and MM_REG* data structure)
- * This does NOT free any memory allocated using bmalloc.
- */
+/* Can be called to free the resources bmalloc takes up (a pthread_mutex_t and MM_REG* data structure) */
 void b_mm_exit(void)
 {
 	if (&mm_mutex != NULL)

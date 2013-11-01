@@ -62,9 +62,10 @@ static void update_syscall_encoding_table(int state)
 			{
 				syscall_encoding_table[i][0] = transition_matrix[state][i];
 			}
-			//Otherwise, append it with the new transition
+			//Otherwise, increase the size in syscall_encoding_table[i] and append it
 			else
 			{
+				syscall_encoding_table[i] = realloc(syscall_encoding_table[i], (set_branches[i] + 1) * sizeof(int));
 				syscall_encoding_table[i][set_branches[i]] = transition_matrix[state][i];
 				set_branches[i]++;
 			}
@@ -261,16 +262,8 @@ void init_parser(void)
 
 	for (i = 0; i < NUM_SYSCALLS; i++)
 	{
-		if (transition_matrix[0][i] != 0)
-		{
-			syscall_encoding_table[i] = malcalloc(transition_matrix[0][i], sizeof(int));
-		}
-		else
-		{
-			syscall_encoding_table[i] = malcalloc(1, sizeof(int));
-		}
-
+		syscall_encoding_table[i] = malcalloc(1, sizeof(int));
 		syscall_encoding_table[i][0] = transition_matrix[1][i]; //Our syscall_encoding_table will start with the same redirection-data as is in transition_matrix's state 1
-		set_branches[i] = 1; // Only syscall_encoding_table[i][0] is set so far
+		set_branches[i] = 1; //We've allocated sizeof(int) * 1, so we only have 1 redirect for each given syscall. set_branches will increment if there are more paths for a syscall to follow
 	}
 }

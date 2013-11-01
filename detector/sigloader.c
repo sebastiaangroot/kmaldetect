@@ -116,7 +116,6 @@ static int handle_input(int state_cur, int sys_id)
 	{
 		state_nxt = add_nullstate();
 		transition_matrix[state_cur][sys_id] = state_nxt;
-		transition_matrix[0][sys_id]++;
 		reverse_transition_matrix[state_nxt][sys_id] = state_cur;
 		state_cur = state_nxt;
 	}
