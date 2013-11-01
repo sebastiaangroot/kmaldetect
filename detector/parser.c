@@ -355,21 +355,12 @@ void tmp_syscall_parser(void)
 	int count = 0;
 	int percentage = 0;
 	int i;
-	int showedstatus = 0;
 	for (i = 0; i < tmp_syscalls_len; i++)
 	{
 		handle_input(&tmp_syscalls[i]);
 		count++;
 		percentage = (int)(((double)count / (double)tmp_syscalls_len) * 100);
-		if (percentage % 10 == 0 && percentage != 0 && !showedstatus)
-		{
-			showedstatus = 1;
-			printf("Parsing progress: %i%%\n", percentage);
-		}
-		else if (percentage % 10 != 0)
-		{
-			showedstatus = 0;
-		}
+		printf("handle_input progress: %i%%\n", percentage);
 	}
 }
 
