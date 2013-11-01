@@ -17,7 +17,6 @@
 #include <sys/stat.h>
 #include "util.h"
 #include "parser.h"
-#include "bmalloc.h"
 
 int **transition_matrix = NULL; //The rule tree we use to traverse a the signatures
 int **reverse_transition_matrix = NULL;
@@ -86,13 +85,13 @@ static void handle_input(SYSCALL *syscall)
 			update_syscall_encoding_table(state);
 			if (syscall->states_len == 0)
 			{
-				syscall->states = bmalloc(sizeof(int), 4 * sizeof(int));
+				syscall->states = malcalloc(1, sizeof(int));
 				syscall->states[0] = state;
 				syscall->states_len = 1;
 			}
 			else
 			{
-				syscall->states = brealloc(syscall->states, (syscall->states_len + 1) * sizeof(int));
+				syscall->states = malrealloc(syscall->states, (syscall->states_len + 1) * sizeof(int));
 				syscall->states[syscall->states_len] = state;
 				syscall->states_len++;
 			}
@@ -107,13 +106,13 @@ static void handle_input(SYSCALL *syscall)
 
 	if (syscalls_len == 0)
 	{
-		syscalls = bmalloc(sizeof(SYSCALL), 1024 * 64 * sizeof(SYSCALL));
+		syscalls = malcalloc(1, sizeof(SYSCALL));
 		memcpy(syscalls, syscall, sizeof(SYSCALL));
 		syscalls_len = 1;
 	}
 	else
 	{
-		syscalls = brealloc(syscalls, (syscalls_len + 1) * sizeof(SYSCALL));
+		syscalls = malrealloc(syscalls, (syscalls_len + 1) * sizeof(SYSCALL));
 		memcpy(&syscalls[syscalls_len], syscall, sizeof(SYSCALL));
 		syscalls_len++;
 	}
@@ -251,12 +250,6 @@ void init_parser(void)
 {
 	int i;
 
-	if (b_mm_init() != 0)
-	{
-		fprintf(stderr, "Error calling b_mm_init");
-		exit(1);
-	}
-	
 	syscall_encoding_table = malcalloc(NUM_SYSCALLS, sizeof(int *));
 	set_branches = malcalloc(NUM_SYSCALLS, sizeof(int));
 

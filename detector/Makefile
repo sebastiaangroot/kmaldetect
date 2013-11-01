@@ -1,4 +1,4 @@
-SRC=detector.c sigloader.c parser.c sequencer.c util.c bmalloc.c
+SRC=detector.c sigloader.c parser.c sequencer.c util.c
 INC=include/
 CFLAGS=-Wall
 CC=gcc
