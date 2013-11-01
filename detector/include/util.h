@@ -13,7 +13,6 @@
 #include <sys/types.h>
 
 #define NUM_SYSCALLS 311
-#define STATES_BUF 5
 
 typedef struct
 {
@@ -21,9 +20,8 @@ typedef struct
 	unsigned long inode;
 	pid_t pid;
 	unsigned long mem_loc;
-	int states_a[STATES_BUF];
-	int *states_p;
-	int states_n;
+	int *states;
+	int states_len;
 } SYSCALL;
 
 typedef struct

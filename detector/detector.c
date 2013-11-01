@@ -40,21 +40,11 @@ int main(int argc, char **argv)
 	{
 		for (j = 0; j < syscalls_len; j++)
 		{
-			for (k = 0; k < syscalls[j].states_n; k++)
+			for (k = 0; k < syscalls[j].states_len; k++)
 			{
-				if (k < STATES_BUF)
+				if (syscalls[j].states[k] == endstates[i].state)
 				{
-					if (syscalls[j].states_a[k] == endstates[i].state)
-					{
-						printf("Ind %i, %lu reached endstate of %s\n", j, syscalls[j].inode, endstates[i].filename);
-					}
-				}
-				else
-				{
-					if (syscalls[j].states_p[k - STATES_BUF] == endstates[i].state)
-					{
-						printf("Ind %i, %lu reached endstate of %s\n", j, syscalls[j].inode, endstates[i].filename);
-					}
+					printf("Ind %i, %lu reached endstate of %s\n", j, syscalls[j].inode, endstates[i].filename);
 				}
 			}
 		}
