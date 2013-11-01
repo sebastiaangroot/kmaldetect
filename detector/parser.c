@@ -146,6 +146,8 @@ void read_syscalls_from_file(char *filename)
 	file_buffer = malmalloc(sizeof(char) * (st.st_size));
 	file_buffer_p = read(fd, file_buffer, st.st_size);
 	cur = 0;
+	
+	printf("Reading %s: ", filename);
 
 	while (cur < file_buffer_p)
 	{
@@ -180,13 +182,15 @@ void read_syscalls_from_file(char *filename)
 		if (percentage % 10 == 0 && percentage != 0 && !showedstatus)
 		{
 			showedstatus = 1;
-			printf("Progress: %i%%\n", percentage);
+			//printf("Progress: %i%%\n", percentage);
+			printf(".");
 		}
 		else if (percentage % 10 != 0)
 		{
 			showedstatus = 0;
 		}
 	}
+	printf(" done.\n");
 	malfree(file_buffer);
 }
 
