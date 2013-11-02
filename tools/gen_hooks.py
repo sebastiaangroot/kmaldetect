@@ -180,7 +180,7 @@ def get_hookfunctions(functpointers, con_unistd):
 			hook += '\t\tdata.mem_loc = NULL;\n'
 			hook += '\t\tmaldetect_nl_send_syscall(&data);\n'
 			hook += '\t}\n'
-			hook += '\treturn %s(%s);\n' % (rettype, refname, plainargs)
+			hook += '\treturn %s(%s);\n' % (refname, plainargs)
 			hook += '}\n'
 		else:
 			hook += '\n'
