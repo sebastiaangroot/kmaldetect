@@ -29,6 +29,13 @@ def get_functpointers(con_unistd, con_sysarch, con_sysarchgen, con_sysgen):
 			found = False
 			prototype = ''
 			functname = line[line.find(',') + 2:-2] #the name of the syscall function
+			
+			"""
+			Special case: We don't hook sys_execve
+			"""
+			if 'sys_execve' in functname:
+				continue
+			
 			#Now we have to scan the three syscalls.h files in order to find the proper function definition with its arguments.
 			for i, line in enumerate(con_sysarch): #sysarch
 				if functname + '(' in line:
@@ -157,21 +164,40 @@ def get_hookfunctions(functpointers, con_unistd):
 		
 		sysid = (get_sysid(syscallname, con_unistd)).strip()
 		
-		hook += '\n'
-		hook += '%s %s(%s)\n' % (rettype, hookname, fullargs)
-		hook += '{\n'
-		hook += '\t%s retval = %s(%s);\n' % (rettype, refname, plainargs)
-		hook += '\tif (maldetect_userspace_pid > 0 && current->pid != maldetect_userspace_pid)\n'
-		hook += '\t{\n'
-		hook += '\t\tSYSCALL data;\n'
-		hook += '\t\tdata.sys_id = %s;\n' % sysid
-		hook += '\t\tdata.inode = get_inode();\n'
-		hook += '\t\tdata.pid = current->pid;\n'
-		hook += '\t\tdata.mem_loc = NULL;\n'
-		hook += '\t\tmaldetect_nl_send_syscall(&data);\n'
-		hook += '\t}\n'
-		hook += '\treturn retval;\n'
-		hook += '}\n'
+		"""
+		Special case: sys_exit_group doesn't return, so we call it AFTER sending the syscall metadata
+		"""
+		if 'sys_exit_group' in hookname:
+			hook += '\n'
+			hook += '%s %s(%s)\n' % (rettype, hookname, fullargs)
+			hook += '{\n'
+			hook += '\tif (maldetect_userspace_pid > 0 && current->pid != maldetect_userspace_pid)\n'
+			hook += '\t{\n'
+			hook += '\t\tSYSCALL data;\n'
+			hook += '\t\tdata.sys_id = %s;\n' % sysid
+			hook += '\t\tdata.inode = get_inode();\n'
+			hook += '\t\tdata.pid = current->pid;\n'
+			hook += '\t\tdata.mem_loc = NULL;\n'
+			hook += '\t\tmaldetect_nl_send_syscall(&data);\n'
+			hook += '\t}\n'
+			hook += '\treturn %s(%s);\n' % (rettype, refname, plainargs)
+			hook += '}\n'
+		else:
+			hook += '\n'
+			hook += '%s %s(%s)\n' % (rettype, hookname, fullargs)
+			hook += '{\n'
+			hook += '\t%s retval = %s(%s);\n' % (rettype, refname, plainargs)
+			hook += '\tif (maldetect_userspace_pid > 0 && current->pid != maldetect_userspace_pid)\n'
+			hook += '\t{\n'
+			hook += '\t\tSYSCALL data;\n'
+			hook += '\t\tdata.sys_id = %s;\n' % sysid
+			hook += '\t\tdata.inode = get_inode();\n'
+			hook += '\t\tdata.pid = current->pid;\n'
+			hook += '\t\tdata.mem_loc = NULL;\n'
+			hook += '\t\tmaldetect_nl_send_syscall(&data);\n'
+			hook += '\t}\n'
+			hook += '\treturn retval;\n'
+			hook += '}\n'
 		output.append(hook)
 	return output
 
