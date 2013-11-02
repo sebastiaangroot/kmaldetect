@@ -64,7 +64,7 @@ def get_functpointers(con_unistd, con_sysarch, con_sysarchgen, con_sysgen):
 				ind = prototype.find(';')
 				prototype = prototype[:ind] + ' = NULL' + prototype[ind:]
 				for entry in output:
-					if entry == prototype:
+					if entry in prototype:
 						duplicate = True
 				if not duplicate:
 					output.append(prototype.replace('\n', ''))
@@ -113,13 +113,13 @@ def get_arguments(funct):
 		if components[-1] in ['char', 'short', 'int', 'long',
 			'size_t', 'pid_t', 'unsigned', 'char*', 'short*', 'int*',
 			'long*', 'size_t*', 'pid_t*', 'unsigned*', '*']:
-			arglist.append(arg + 'arg%i' % i)
+			arglist.append(arg + ' arg%i' % i)
 		elif (components[0] == 'struct') and (len(components) <= 2):
-			arglist.append(arg + 'arg%i' % i)
+			arglist.append(arg + ' arg%i' % i)
 		elif components[-1].startswith('__'):
-			arglist.append(arg + 'arg%i' % i)
+			arglist.append(arg + ' arg%i' % i)
 		elif components[-1].endswith('_t'):
-			arglist.append(arg + 'arg%i' % i)
+			arglist.append(arg + ' arg%i' % i)
 		else:
 			arglist.append(arg)
 
