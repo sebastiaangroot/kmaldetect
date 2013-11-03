@@ -2,6 +2,9 @@ import sys
 import getopt
 
 def usage():
+	"""
+	Prints usage information to screen
+	"""
 	print('Usage: %s --unistd=<path> --sysarch=<path> --sysarchgen=<path> --sysgen=<path> --outfile=<path>' % sys.argv[0])
 	print('\t--unistd:\tarch/<architecture>/include/asm/unistd[_xx].h')
 	print('\t--sysarch:\tarch/<architecture>/include/asm/syscalls.h')
@@ -10,6 +13,10 @@ def usage():
 	print('\t--outfile:\tPath where you want the new hooks.c file to be created')
 
 def get_includes():
+	"""
+	Returns a list of strings that make up the static top
+	of the hooks.c file.
+	"""
 	output = []
 	output.append('#include <asm/unistd.h>\n')
 	output.append('#include <linux/syscalls.h>\n')
@@ -23,6 +30,18 @@ def get_includes():
 	return output
 
 def get_functpointers(con_unistd, con_sysarch, con_sysarchgen, con_sysgen):
+	"""
+	Returns a list of strings containing the reference
+	variables of the real system calls. The variables are
+	in the form of:
+	long (*ref_sys_x)(type arg0, type arg1) = NULL;
+	
+	Arguments:
+	con_unistd - A list containing the content of the unistd header.
+	con_sysarch - A list containing the content of the architecture-dependant syscalls.h
+	con_sysarchgen - A list containing the content of the architecture-generic syscalls.h
+	con_sysgen - A list containing the content of the generic linux syscalls.h
+	"""
 	output = []
 	for line in con_unistd:
 		if line.startswith('__SYSCALL('):
@@ -78,6 +97,13 @@ def get_functpointers(con_unistd, con_sysarch, con_sysarchgen, con_sysgen):
 	return output
 
 def get_arguments_names_only(funct):
+	"""
+	Returns the argument names of a function in the following format:
+	arg0, arg1, arg2
+	
+	Arguments:
+	funct - A string containing one of the syscall reference variables.
+	"""
 	arglist = []
 	argstring = ''
 	
@@ -107,6 +133,13 @@ def get_arguments_names_only(funct):
 	return argstring
 	
 def get_arguments(funct):
+	"""
+	Returns the argument types and names of a function in the following format:
+	type arg0, type arg1, type arg2
+	
+	Arguments:
+	funct - A string containing one of the syscall reference variables.
+	"""
 	arglist = []
 	argstring = ''
 	
@@ -137,6 +170,14 @@ def get_arguments(funct):
 	return argstring
 
 def get_sysid(funct, con_unistd):
+	"""
+	Returns the number associated with a system-call, as defined by
+	its '__NR_name' in the unistd file.
+	
+	Arguments:
+	funct - A string containing one of the syscall reference variables.
+	con_unistd - A list containing the content of the unistd header.
+	"""
 	for i, line in enumerate(con_unistd):
 		if funct in line:
 			if '\t' in con_unistd[i - 1]:
@@ -150,6 +191,13 @@ def get_sysid(funct, con_unistd):
 	return 'ERROR'
 
 def get_hookfunctions(functpointers, con_unistd):
+	"""
+	Returns a list of strings containing the hook functions
+	
+	Arguments:
+	functpointers - A list of all function pointer reference variables
+	con_unistd - A list containing the content of the unistd header.
+	"""
 	output = []
 	for funct in functpointers:
 		hook = '' #string to hold this hook function
@@ -202,6 +250,13 @@ def get_hookfunctions(functpointers, con_unistd):
 	return output
 
 def get_defname(syscall, con_unistd):
+	"""
+	Returns the name of the #define associated with this system-call
+	
+	Arguments:
+	syscall - The name of the system-call function (sys_[name]).
+	con_unistd - A list containing the content of the unistd header.
+	"""
 	for line in con_unistd:
 		if syscall in line:
 			return line[line.find('(') + 1:line.find(',')]
@@ -231,6 +286,17 @@ def get_regunregfunctions(functpointers, con_unistd):
 	return output
 
 def gen_hooks(con_unistd, con_sys, f):
+	"""
+	The file-write function of the script. It calls get_includes,
+	get_functpointers, get_hookfunctions and get_regunregfunctions
+	to obtain the content of the new hooks.c file, and writes
+	the data to the file object f.
+	
+	Arguments:
+	con_unistd - A list containing the content of the unistd header.
+	con_sys - A tuple containing the file-content lists of the three syscalls.h files.
+	f - A file object previously opened with write-permission.
+	"""
 	includes = get_includes()
 	for line in includes:
 		f.write(line)
