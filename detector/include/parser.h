@@ -13,6 +13,7 @@
 #include "util.h"
 
 #define BYTES_PER_SYSCALL	16.60249
+#define FILEBUF_LIM	2147483648
 
 extern int **transition_matrix;
 extern int **reverse_transition_matrix;
