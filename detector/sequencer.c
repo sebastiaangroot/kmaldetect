@@ -93,7 +93,7 @@ int find_statematch(int state, int seq1from, int seq2from, int first_endstate){
 				}
 				else
 				{
-               fprintf(stderr, "DBG_COUNTER: %ul", counter);
+               fprintf(stderr, "DBG_COUNTER: %llu\n", counter);
 					fprintf(stderr, "FOUND HIT. PRINTING THE DOUBLE TRACE:\n");
 					print_syscall(syscalls[call1], state);
 					print_syscall(syscalls[call2], state);

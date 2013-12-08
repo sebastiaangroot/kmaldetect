@@ -154,19 +154,22 @@ void read_syscalls_from_file(char *filename)
 		end = cur;
 
 		//int sys_id
-		while (file_buffer[end] != ':') end++;
+		while (end < file_buffer_p && file_buffer[end] != ':') end++;
 		syscall.sys_id = (int)strtol(file_buffer+cur, NULL, 10);
 		cur = ++end;
+		if (cur >= file_buffer_p) break;
 
 		//ulong inode
-		while (file_buffer[end] != ':') end++;
+		while (end < file_buffer_p && file_buffer[end] != ':') end++;
 		syscall.inode = (unsigned long)strtol(file_buffer+cur, NULL, 10);
 		cur = ++end;
+		if (cur >= file_buffer_p) break;
 
 		//pid_t pid
-		while(file_buffer[end] != ':') end++;
+		while(end < file_buffer_p && file_buffer[end] != ':') end++;
 		syscall.pid = (pid_t)strtol(file_buffer+cur, NULL, 10);
 		cur = ++end;
+		if (cur >= file_buffer_p) break;
 
 		//ulong mem_loc
 		while(end <= file_buffer_p && file_buffer[end] != '>') end++;
