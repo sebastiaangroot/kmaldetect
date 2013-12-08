@@ -25,14 +25,46 @@ extern SYSCALL *syscalls;
 extern int syscalls_len;
 unsigned long long counter = 0;
 
-int find_syscall_reverse(int state, int from, int to)
+void print_dbg(int low1, int up1, int cur1, int low2, int up2, int cur2)
+{
+	char *buffer;
+	buffer = malmalloc((syscalls_len * 3) + 1, sizeof(char));
+	memset(buffer, 0x20, ((syscalls_len*3))*sizeof(char));
+	buffer[syscalls_len*3] = '\0';
+	int i;
+	for (i = 0; i < syscalls_len; i++)
+	{
+		printf("[%i]", syscalls[i].states[0]);
+	}
+	if (low1 >= 0)
+		buffer[low1*3] = '[';
+	if (up1 >= 0)
+		buffer[(up1*3)+2] = ']';
+	if (cur1 >= 0)
+		buffer[(cur1*3)+1] = '1';
+	if (low2 >= 0)
+		buffer[low2*3] = '{';
+	if (up2 >= 0)
+		buffer[(up2*3)+2] = '}';
+	if (cur2 >= 0)
+		buffer[(cur2*3)+1] = '2';
+	printf(buffer);
+	malfree(buffer);
+	getchar();
+}
+
+int find_syscall_reverse(int state, int from, int to, int other_low, int other_up, int other_cur, int seq)
 {
 	int i, j;
 	for (i = from; i >= to; i--)
 	{
+		counter++;
+		if (seq == 1)
+			print_dbg(to, from, i, -1, -1, -1);
+		else if (seq == 2)
+			print_dbg(other_low, other_up, other_cur, from, to, i);
 		for (j = 0; j < syscalls[i].states_len; j++)
 		{
-         counter++;
 			if (syscalls[i].states[j] == state)
 			{
 				return i;
@@ -61,14 +93,14 @@ int find_statematch(int state, int seq1from, int seq2from, int first_endstate){
 	int call2;
 	int real_first_endstate;
 	
-	call1 = find_syscall_reverse(state, seq1from, 0);
+	call1 = find_syscall_reverse(state, seq1from, 0, -1, -1, -1, 1);
 	if (call1 == -1)
 	{
 		return 0;
 	}
 	real_first_endstate = (first_endstate == -1 ? call1 + 1: first_endstate);
 
-	call2 = find_syscall_reverse(state, seq2from, real_first_endstate);
+	call2 = find_syscall_reverse(state, seq2from, real_first_endstate, 0, seq1from, call1, 2);
 	while (call1 != -1)
 	{
 		while (call2 != -1)
@@ -100,12 +132,13 @@ int find_statematch(int state, int seq1from, int seq2from, int first_endstate){
 					return DO_PRINT;
 				}
 			}
-			call2 = find_syscall_reverse(state, call2 - 1, real_first_endstate);
+			call2 = find_syscall_reverse(state, call2 - 1, real_first_endstate, 0, seq1from, call1, 2);
 		}
-		call1 = find_syscall_reverse(state, call1 - 1, 0);
+		seq1from = call1 - 1;
+		call1 = find_syscall_reverse(state, call1 - 1, 0, -1, -1, -1, 1);
 		real_first_endstate = (first_endstate == -1 ? call1 + 1: first_endstate);
 
-		call2 = find_syscall_reverse(state, seq2from, real_first_endstate);
+		call2 = find_syscall_reverse(state, seq2from, real_first_endstate, 0, seq1from, call1, 2);
 	}
 	return 0;
 }
