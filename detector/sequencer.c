@@ -23,6 +23,7 @@
 
 extern SYSCALL *syscalls;
 extern int syscalls_len;
+unsigned long long counter = 0;
 
 int find_syscall_reverse(int state, int from, int to)
 {
@@ -31,6 +32,7 @@ int find_syscall_reverse(int state, int from, int to)
 	{
 		for (j = 0; j < syscalls[i].states_len; j++)
 		{
+         counter++;
 			if (syscalls[i].states[j] == state)
 			{
 				return i;
@@ -91,6 +93,7 @@ int find_statematch(int state, int seq1from, int seq2from, int first_endstate){
 				}
 				else
 				{
+               fprintf(stderr, "DBG_COUNTER: %ul", counter);
 					fprintf(stderr, "FOUND HIT. PRINTING THE DOUBLE TRACE:\n");
 					print_syscall(syscalls[call1], state);
 					print_syscall(syscalls[call2], state);
