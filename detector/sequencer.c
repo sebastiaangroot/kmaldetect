@@ -54,6 +54,8 @@ int match_syscalls(SYSCALL sys1, SYSCALL sys2)
 	return 0;
 }
 
+
+
 int find_statematch(int state, int seq1from, int seq2from, int first_endstate){
 	int call1;
 	int call2;
@@ -73,12 +75,6 @@ int find_statematch(int state, int seq1from, int seq2from, int first_endstate){
 		{
 			if (match_syscalls(syscalls[call1], syscalls[call2]))
 			{
-//DEBUGGING INFO===============================
-				//if (first_endstate == -1)
-				//{
-				//	fprintf(stderr, "Matching endstate %i with indexes %i and %i\n", state, call1, call2);
-				//}
-//DEBUGGING INFO===============================
 				if (state > 2)
 				{
 					if (find_statematch(reverse_transition_matrix[state][syscalls[call2].sys_id], call1 - 1, call2 - 1, real_first_endstate) == DO_PRINT)
