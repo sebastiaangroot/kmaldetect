@@ -31,6 +31,50 @@ int *set_branches = NULL;
 int *state_counter = NULL;
 int *malicious_match = NULL;
 
+static void update_syscall_encoding_table(int state)
+{
+	int i, j;
+	int duplicate;
+
+	//For each syscall
+	for (i = 0; i < NUM_SYSCALLS; i++)
+	{
+		//We ignore it if it leads to zero
+		if (transition_matrix[state][i] == 0)
+		{
+			continue;
+		}
+
+		//We check if we've already defined this transition
+		duplicate = 0;
+		for (j = 0; j < set_branches[i]; j++)
+		{
+			if (transition_matrix[state][i] == syscall_encoding_table[i][j])
+			{
+				duplicate = 1;
+				break;
+			}
+		}
+
+		//If this is a new transition
+		if (!duplicate)
+		{
+			//If we defined nothing but the zero state, overwrite it
+			if (syscall_encoding_table[i][0] == 0)
+			{
+				syscall_encoding_table[i][0] = transition_matrix[state][i];
+			}
+			//Otherwise, increase the size in syscall_encoding_table[i] and append it
+			else
+			{
+				syscall_encoding_table[i] = realloc(syscall_encoding_table[i], (set_branches[i] + 1) * sizeof(int));
+				syscall_encoding_table[i][set_branches[i]] = transition_matrix[state][i];
+				set_branches[i]++;
+			}
+		}
+	}
+}
+
 /* Returns an index for the endstates array for a corrosponding endstate */
 int get_endstate(int state)
 {
@@ -50,9 +94,10 @@ void print_match(ENDSTATE endstate)
     printf("Found match for %s!\n", endstate.filename);
     printf("Metadata from the last calls:\n");
     print_metadata(endstate.state);
+	 //print_metadata_very_verbose();
 }
 
-int update_state_counter(int state)
+void update_state_counter(int state)
 {
     int i;
     state_counter[state]++;
@@ -78,8 +123,8 @@ static void handle_input(SYSCALL *syscall)
         if ((state = syscall_encoding_table[syscall->sys_id][i]) != 0)
         {
             update_syscall_encoding_table(state);
+				store_metadata(syscall, state);
             update_state_counter(state);
-            store_metadata(syscall);
         }
     }
     
@@ -132,7 +177,7 @@ void read_syscalls_from_file(char *filename)
 	file_buffer_p = read(fd, file_buffer, st.st_size);
 	cur = 0;
 	
-	printf("Reading %s: ", filename);
+	//printf("Reading %s: ", filename);
 
 	while (cur < file_buffer_p)
 	{
@@ -171,24 +216,24 @@ void read_syscalls_from_file(char *filename)
 		{
 			showedstatus = 1;
 			//printf("Progress: %i%%\n", percentage);
-			printf(".");
+			//printf(".");
 		}
 		else if (percentage % 10 != 0)
 		{
 			showedstatus = 0;
 		}
 	}
-	printf(" done.\n");
+	//printf(" done.\n");
 	malfree(file_buffer);
 }
 
 void init_parser(void)
 {
 	int i;
-    state_counter = malcalloc(tm_states_len, sizeof(int));
-    malicious_match = malcalloc(endstates_len, sizeof(int));
-    syscall_encoding_table = malcalloc(NUM_SYSCALLS, sizeof(int *));
-    set_branches = malcalloc(NUM_SYSCALLS, sizeof(int));
+	state_counter = malcalloc(tm_states_len, sizeof(int));
+	malicious_match = malcalloc(endstates_len, sizeof(int));
+	syscall_encoding_table = malcalloc(NUM_SYSCALLS, sizeof(int *));
+	set_branches = malcalloc(NUM_SYSCALLS, sizeof(int));
 
     for (i = 0; i < NUM_SYSCALLS; i++)
     {
@@ -196,4 +241,5 @@ void init_parser(void)
         syscall_encoding_table[i][0] = transition_matrix[1][i]; //Our syscall_encoding_table will start with the same redirection-data as is in transition_matrix's state 1
         set_branches[i] = 1; //We've allocated sizeof(int) * 1, so we only have 1 redirect for each given syscall. set_branches will increment if there are more paths for a syscall to follow
     }
+	 init_logger();
 }

@@ -16,6 +16,7 @@
  */
 
 #include <stdio.h>
+#include <string.h>
 #include "util.h"
 #include "parser.h"
 
@@ -28,7 +29,7 @@ unsigned long long counter = 0;
 void print_dbg(int low1, int up1, int cur1, int low2, int up2, int cur2)
 {
 	char *buffer;
-	buffer = malmalloc((syscalls_len * 3) + 1, sizeof(char));
+	buffer = malmalloc(((syscalls_len * 3) + 1) * sizeof(char));
 	memset(buffer, 0x20, ((syscalls_len*3))*sizeof(char));
 	buffer[syscalls_len*3] = '\0';
 	int i;

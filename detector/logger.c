@@ -1,3 +1,5 @@
+#include <stdlib.h>
+#include <stdio.h>
 #include "util.h"
 #include "parser.h"
 
@@ -9,11 +11,12 @@ struct list
 {
     union {
         pid_t *pids;
-        unsigned long *ulongs
+        unsigned long *ulongs;
     };
     int p;
     int alloc;
-} LIST;
+};
+typedef struct list LIST;
 
 LIST *inodes = NULL;
 LIST *memlocs = NULL;
@@ -52,10 +55,10 @@ static void store_pid(pid_t pid, int state)
     pids[state].p++;
 }
 
-void store_metadata(SYSCALL *sys, state)
+void store_metadata(SYSCALL *sys, int state)
 {
     store_inode(sys->inode, state);
-    store_memloc(sys->memloc, state);
+    store_memloc(sys->mem_loc, state);
     store_pid(sys->pid, state);
 }
 
@@ -80,6 +83,61 @@ void print_metadata(int state)
     {
         printf("\t%i\n", pids[state].pids[i]);
     }
+}
+
+struct counter
+{
+	union {
+		unsigned long unlong;
+		pid_t pid;
+	};
+	int counter;
+};
+
+void print_metadata_verbose(void)
+{
+	int i, j;
+	int least_recorded[5];
+	int lr_p = 0;
+	struct counter most_common[5];
+	while (lr_p < 5)
+	{
+		for (i = 0; i < tm_states_len; i++)
+		{
+		}
+	}
+}
+
+void print_metadata_very_verbose(void)
+{
+	int i, j;
+	
+	printf("Inodes:");
+	for (i = 0; i < tm_states_len; i++)
+	{
+		for (j = 0; j < inodes[i].p; j++)
+		{
+			printf("\t%lu\n", inodes[i].ulongs[j]);
+		}
+	}
+
+	printf("\nMemlocs:\n");
+	for (i = 0; i < tm_states_len; i++)
+	{
+		for (j = 0; j < memlocs[i].p; j++)
+		{
+			printf("\t%lu\n", memlocs[i].ulongs[j]);
+		}
+	}
+
+	printf("\nPids:\n");
+	for (i = 0; i < tm_states_len; i++)
+	{
+		for (j = 0; j < pids[i].p; j++)
+		{
+			printf("\t%i\n", pids[i].pids[j]);
+		}
+	}
 }
 
 void init_logger(void)
