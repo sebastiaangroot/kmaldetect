@@ -78,74 +78,74 @@ static void update_syscall_encoding_table(int state)
 /* Returns an index for the endstates array for a corrosponding endstate */
 int get_endstate(int state)
 {
-    int i;
-    for (i = 0; i < endstates_len; i++)
-    {
-        if (state == endstates[i].state)
-        {
-            return i;
-        }
-    }
-    return -1;
+	int i;
+	for (i = 0; i < endstates_len; i++)
+	{
+		if (state == endstates[i].state)
+		{
+			return i;
+		}
+	}
+	return -1;
 }
 
 void print_match(ENDSTATE endstate)
 {
-    printf("Found match for %s!\n", endstate.filename);
-    printf("Metadata from the last calls:\n");
-    //print_metadata(endstate.state);
-	 print_metadata_very_verbose();
+	printf("Found match for %s!\n", endstate.filename);
+	printf("Metadata from the last calls:\n");
+	//print_metadata(endstate.state);
+	print_metadata_very_verbose();
 }
 
 void update_state_counter(int state)
 {
-    int i;
-    state_counter[state]++;
-    if ((i = get_endstate(state)) != -1)
-    {
-        memset(state_counter, 0, sizeof(int) * tm_states_len);
-        malicious_match[i]++;
-        if (malicious_match[i] >= 2)
-        {
-            print_match(endstates[i]);
-        }
-    }
+	int i;
+	state_counter[state]++;
+	if ((i = get_endstate(state)) != -1)
+	{
+		memset(state_counter, 0, sizeof(int) * tm_states_len);
+		malicious_match[i]++;
+		if (malicious_match[i] >= 2)
+		{
+			print_match(endstates[i]);
+		}
+	}
 }
 
 static void handle_input(SYSCALL *syscall)
 {
-    int i, branch_lim, state;
+	int i, branch_lim, state;
 
-    //Follow the syscall_encoding_table
-    branch_lim = set_branches[syscall->sys_id];
-    for (i = 0; i < branch_lim; i++)
-    {
-        if ((state = syscall_encoding_table[syscall->sys_id][i]) != 0)
-        {
-            update_syscall_encoding_table(state);
-				store_metadata(syscall, state);
-            update_state_counter(state);
-        }
-    }
-    
-    //No states were reached, we're not saving this syscall
-    if (syscall->states_len == 0)
-    {
-        return;
-    }
-    
-    if (syscalls_len == 0)
-    {
-        syscalls = malcalloc(1, sizeof(SYSCALL));
-        memcpy(syscalls, syscall, sizeof(SYSCALL));
-        syscalls_len = 1;
-    }
-    else
-    {
-        syscalls = malrealloc(syscalls, (syscalls_len + 1) * sizeof(SYSCALL));
-        memcpy(&syscalls[syscalls_len], syscall, sizeof(SYSCALL));
-        syscalls_len++;
-    }
+	//Follow the syscall_encoding_table
+	branch_lim = set_branches[syscall->sys_id];
+	for (i = 0; i < branch_lim; i++)
+	{
+		if ((state = syscall_encoding_table[syscall->sys_id][i]) != 0)
+		{
+			update_syscall_encoding_table(state);
+			store_metadata(syscall, state);
+			update_state_counter(state);
+		}
+	}
+
+	//No states were reached, we're not saving this syscall
+	if (syscall->states_len == 0)
+	{
+		return;
+	}
+
+	if (syscalls_len == 0)
+	{
+		syscalls = malcalloc(1, sizeof(SYSCALL));
+		memcpy(syscalls, syscall, sizeof(SYSCALL));
+		syscalls_len = 1;
+	}
+	else
+	{
+		syscalls = malrealloc(syscalls, (syscalls_len + 1) * sizeof(SYSCALL));
+		memcpy(&syscalls[syscalls_len], syscall, sizeof(SYSCALL));
+		syscalls_len++;
+	}
 }
 
 void read_syscalls_from_file(char *filename)
@@ -235,11 +235,11 @@ void init_parser(void)
 	syscall_encoding_table = malcalloc(NUM_SYSCALLS, sizeof(int *));
 	set_branches = malcalloc(NUM_SYSCALLS, sizeof(int));
 
-    for (i = 0; i < NUM_SYSCALLS; i++)
-    {
-        syscall_encoding_table[i] = malcalloc(1, sizeof(int));
-        syscall_encoding_table[i][0] = transition_matrix[1][i]; //Our syscall_encoding_table will start with the same redirection-data as is in transition_matrix's state 1
-        set_branches[i] = 1; //We've allocated sizeof(int) * 1, so we only have 1 redirect for each given syscall. set_branches will increment if there are more paths for a syscall to follow
-    }
+	for (i = 0; i < NUM_SYSCALLS; i++)
+	{
+		syscall_encoding_table[i] = malcalloc(1, sizeof(int));
+		syscall_encoding_table[i][0] = transition_matrix[1][i]; //Our syscall_encoding_table will start with the same redirection-data as is in transition_matrix's state 1
+		set_branches[i] = 1; //We've allocated sizeof(int) * 1, so we only have 1 redirect for each given syscall. set_branches will increment if there are more paths for a syscall to follow
+	}
 	 init_logger();
 }
