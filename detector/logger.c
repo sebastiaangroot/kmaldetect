@@ -94,7 +94,7 @@ struct counter
 	int counter;
 };
 
-void print_metadata_verbose(void)
+/*void print_metadata_verbose(void)
 {
 	int i, j;
 	int least_recorded[5];
@@ -106,7 +106,7 @@ void print_metadata_verbose(void)
 		{
 		}
 	}
-}
+}*/
 
 void print_metadata_very_verbose(void)
 {

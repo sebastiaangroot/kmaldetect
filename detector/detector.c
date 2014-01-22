@@ -20,7 +20,6 @@ extern int endstates_len;
 
 int main(int argc, char **argv)
 {
-	int i, j, k;
 	if (argc != 2)
 	{
 		fprintf(stderr, "Usage: %s <kmaldetect trace file>\n", argv[0]);
