@@ -24,8 +24,6 @@ int **reverse_transition_matrix = NULL;
 int tm_states_len = 0;
 ENDSTATE *endstates = NULL; //The endstates, with their number and filename
 int endstates_len = 0;
-SYSCALL *syscalls = NULL; //The list containing all handled syscalls
-int syscalls_len = 0;
 int **syscall_encoding_table = NULL;
 int *set_branches = NULL;
 int *state_counter = NULL;
@@ -108,6 +106,7 @@ void update_state_counter(int state)
 		if (malicious_match[i] >= 2)
 		{
 			print_match(endstates[i]);
+			malicious_match[i] = 0;
 		}
 	}
 }
@@ -127,27 +126,6 @@ static void handle_input(SYSCALL *syscall)
 			update_state_counter(state);
 		}
 	}
-
-	/*
-	//No states were reached, we're not saving this syscall
-	if (syscall->states_len == 0)
-	{
-		return;
-	}
-
-	if (syscalls_len == 0)
-	{
-		syscalls = malcalloc(1, sizeof(SYSCALL));
-		memcpy(syscalls, syscall, sizeof(SYSCALL));
-		syscalls_len = 1;
-	}
-	else
-	{
-		syscalls = malrealloc(syscalls, (syscalls_len + 1) * sizeof(SYSCALL));
-		memcpy(&syscalls[syscalls_len], syscall, sizeof(SYSCALL));
-		syscalls_len++;
-	}
-	*/
 }
 
 void read_syscalls_from_file(char *filename)
@@ -178,8 +156,6 @@ void read_syscalls_from_file(char *filename)
 	file_buffer = malmalloc(sizeof(char) * (st.st_size));
 	file_buffer_p = read(fd, file_buffer, st.st_size);
 	cur = 0;
-	
-	//printf("Reading %s: ", filename);
 
 	while (cur < file_buffer_p)
 	{
@@ -217,15 +193,14 @@ void read_syscalls_from_file(char *filename)
 		if (percentage % 10 == 0 && percentage != 0 && !showedstatus)
 		{
 			showedstatus = 1;
-			//printf("Progress: %i%%\n", percentage);
-			//printf(".");
+			printf(".");
 		}
 		else if (percentage % 10 != 0)
 		{
 			showedstatus = 0;
 		}
 	}
-	//printf(" done.\n");
+	printf(" done.\n");
 	malfree(file_buffer);
 }
 
