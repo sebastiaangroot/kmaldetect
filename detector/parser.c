@@ -136,7 +136,7 @@ void read_syscalls_from_file(char *filename)
 	char *file_buffer;
 	long file_buffer_p;
 	struct stat st;
-	int num_syscalls, count, percentage, showedstatus;
+	int num_syscalls, count;
 
 	stat(filename, &st);
 	num_syscalls = (unsigned long)(st.st_size / BYTES_PER_SYSCALL);
@@ -188,19 +188,7 @@ void read_syscalls_from_file(char *filename)
 		syscall.states_len = 0;
 		handle_input(&syscall);
 		count++;
-
-		percentage = (int)(((double)count / (double)num_syscalls) * 100);
-		if (percentage % 10 == 0 && percentage != 0 && !showedstatus)
-		{
-			showedstatus = 1;
-			printf(".");
-		}
-		else if (percentage % 10 != 0)
-		{
-			showedstatus = 0;
-		}
 	}
-	printf(" done.\n");
 	malfree(file_buffer);
 }
 
