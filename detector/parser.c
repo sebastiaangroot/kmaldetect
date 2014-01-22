@@ -128,6 +128,7 @@ static void handle_input(SYSCALL *syscall)
 		}
 	}
 
+	/*
 	//No states were reached, we're not saving this syscall
 	if (syscall->states_len == 0)
 	{
@@ -146,6 +147,7 @@ static void handle_input(SYSCALL *syscall)
 		memcpy(&syscalls[syscalls_len], syscall, sizeof(SYSCALL));
 		syscalls_len++;
 	}
+	*/
 }
 
 void read_syscalls_from_file(char *filename)

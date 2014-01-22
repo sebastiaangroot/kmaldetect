@@ -36,7 +36,7 @@ int main(int argc, char **argv)
 	init_parser();
 	read_syscalls_from_file(argv[1]);
 
-	for (i = 0; i < endstates_len; i++)
+	/*for (i = 0; i < endstates_len; i++)
 	{
 		for (j = 0; j < syscalls_len; j++)
 		{
@@ -48,10 +48,10 @@ int main(int argc, char **argv)
 				}
 			}
 		}
-	}
+	}*/
 
 	//keep_duplicates();
-	find_statematch(endstates->state, syscalls_len - 2, syscalls_len - 1, -1);
+	//find_statematch(endstates->state, syscalls_len - 2, syscalls_len - 1, -1);
 
 	//printf("Matching sequences for each endstate...\n");
 	//parse_endstates();
