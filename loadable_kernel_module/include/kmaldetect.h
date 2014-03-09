@@ -15,7 +15,7 @@ typedef struct
 	int sys_id;
 	unsigned long inode;
 	pid_t pid;
-	unsigned long mem_loc;
+	unsigned long stack;
 } SYSCALL;
 
 #endif

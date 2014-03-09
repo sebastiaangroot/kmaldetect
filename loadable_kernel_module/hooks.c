@@ -1,14 +1,3 @@
-﻿/*
- * Contains system-call references, hook functions and functions to replace the function pointers in the sys_call_table.
- *
- * Copyright (c) 2013 Sebastiaan Groot
- *
- * This program is free software; you can redistribute it and/or modify it
- * under the terms of the GNU General Public License as published by the Free
- * Software Foundation; either version 2 of the License, or (at your option) 
- * any later version.
- */
-
 #include <asm/unistd.h>
 #include <linux/syscalls.h>
 #include <asm/thread_info.h>
@@ -17,6 +6,7 @@
 #include "kmaldetect.h"
 
 extern pid_t maldetect_userspace_pid;
+
 long (*ref_sys_read)(unsigned int fd, char __user *buf, size_t count) = NULL;
 long (*ref_sys_write)(unsigned int fd, const char __user *buf,   size_t count) = NULL;
 long (*ref_sys_open)(const char __user *filename, int flags, int mode) = NULL;
@@ -24,9 +14,9 @@ long (*ref_sys_close)(unsigned int fd) = NULL;
 long (*ref_sys_newstat)(char __user *filename, struct stat __user *statbuf) = NULL;
 long (*ref_sys_newfstat)(unsigned int fd, struct stat __user *statbuf) = NULL;
 long (*ref_sys_newlstat)(char __user *filename, struct stat __user *statbuf) = NULL;
-long (*ref_sys_poll)(struct pollfd __user *ufds, unsigned int nfds, int timeout) = NULL;
+long (*ref_sys_poll)(struct pollfd __user *ufds, unsigned int nfds, long timeout) = NULL;
 long (*ref_sys_lseek)(unsigned int fd, off_t offset,   unsigned int origin) = NULL;
-long (*ref_sys_mmap)(unsigned long, unsigned long, unsigned long,  unsigned long, unsigned long, unsigned long) = NULL;
+long (*ref_sys_mmap)(unsigned long, unsigned long, unsigned long, unsigned long, unsigned long, unsigned long) = NULL;
 long (*ref_sys_mprotect)(unsigned long start, size_t len, unsigned long prot) = NULL;
 long (*ref_sys_munmap)(unsigned long addr, size_t len) = NULL;
 long (*ref_sys_brk)(unsigned long brk) = NULL;
@@ -72,7 +62,6 @@ long (*ref_sys_getpeername)(int, struct sockaddr __user *, int __user *) = NULL;
 long (*ref_sys_socketpair)(int, int, int, int __user *) = NULL;
 long (*ref_sys_setsockopt)(int fd, int level, int optname, char __user *optval, int optlen) = NULL;
 long (*ref_sys_getsockopt)(int fd, int level, int optname, char __user *optval, int __user *optlen) = NULL;
-long (*ref_sys_execve)(char __user *, char __user * __user *, char __user * __user *, struct pt_regs *);
 long (*ref_sys_exit)(int error_code) = NULL;
 long (*ref_sys_wait4)(pid_t pid, int __user *stat_addr, int options, struct rusage __user *ru) = NULL;
 long (*ref_sys_kill)(int pid, int sig) = NULL;
@@ -147,7 +136,7 @@ long (*ref_sys_rt_sigsuspend)(sigset_t __user *unewset, size_t sigsetsize) = NUL
 long (*ref_sys_utime)(char __user *filename, struct utimbuf __user *times) = NULL;
 long (*ref_sys_mknod)(const char __user *filename, int mode, unsigned dev) = NULL;
 long (*ref_sys_ni_syscall)(void) = NULL;
-long (*ref_sys_personality)(unsigned int personality) = NULL;
+long (*ref_sys_personality)(u_long personality) = NULL;
 long (*ref_sys_ustat)(unsigned dev, struct ustat __user *ubuf) = NULL;
 long (*ref_sys_statfs)(const char __user * path, struct statfs __user *buf) = NULL;
 long (*ref_sys_fstatfs)(unsigned int fd, struct statfs __user *buf) = NULL;
@@ -297,12 +286,6 @@ long (*ref_sys_preadv)(unsigned long fd, const struct iovec __user *vec,    unsi
 long (*ref_sys_pwritev)(unsigned long fd, const struct iovec __user *vec,     unsigned long vlen, unsigned long pos_l, unsigned long pos_h) = NULL;
 long (*ref_sys_rt_tgsigqueueinfo)(pid_t tgid, pid_t  pid, int sig, siginfo_t __user *uinfo) = NULL;
 long (*ref_sys_perf_event_open)( struct perf_event_attr __user *attr_uptr, pid_t pid, int cpu, int group_fd, unsigned long flags) = NULL;
-long (*ref_sys_recvmmsg)(int fd, struct mmsghdr __user *msg,      unsigned int vlen, unsigned flags,      struct timespec __user *timeout) = NULL;
-long (*ref_sys_clock_adjtime)(clockid_t which_clock, struct timex __user *tx) = NULL;
-long (*ref_sys_syncfs)(int fd) = NULL;
-long (*ref_sys_sendmmsg)(int fd, struct mmsghdr __user *msg,      unsigned int vlen, unsigned flags) = NULL;
-long (*ref_sys_process_vm_readv)(pid_t pid,      const struct iovec __user *lvec,      unsigned long liovcnt,      const struct iovec __user *rvec,      unsigned long riovcnt,      unsigned long flags) = NULL;
-long (*ref_sys_process_vm_writev)(pid_t pid,       const struct iovec __user *lvec,       unsigned long liovcnt,       const struct iovec __user *rvec,       unsigned long riovcnt,       unsigned long flags) = NULL;
 
 long hook_sys_read(unsigned int fd, char __user *buf, size_t count)
 {
@@ -313,7 +296,7 @@ long hook_sys_read(unsigned int fd, char __user *buf, size_t count)
 		data.sys_id = 0;
 		data.inode = get_inode();
 		data.pid = current->pid;
-		data.mem_loc = 0;
+		data.stack = (unsigned long)current->stack;
 		maldetect_nl_send_syscall(&data);
 	}
 	return retval;
@@ -328,7 +311,7 @@ long hook_sys_write(unsigned int fd, const char __user *buf,   size_t count)
 		data.sys_id = 1;
 		data.inode = get_inode();
 		data.pid = current->pid;
-		data.mem_loc = 0;
+		data.stack = (unsigned long)current->stack;
 		maldetect_nl_send_syscall(&data);
 	}
 	return retval;
@@ -343,7 +326,7 @@ long hook_sys_open(const char __user *filename, int flags, int mode)
 		data.sys_id = 2;
 		data.inode = get_inode();
 		data.pid = current->pid;
-		data.mem_loc = 0;
+		data.stack = (unsigned long)current->stack;
 		maldetect_nl_send_syscall(&data);
 	}
 	return retval;
@@ -358,7 +341,7 @@ long hook_sys_close(unsigned int fd)
 		data.sys_id = 3;
 		data.inode = get_inode();
 		data.pid = current->pid;
-		data.mem_loc = 0;
+		data.stack = (unsigned long)current->stack;
 		maldetect_nl_send_syscall(&data);
 	}
 	return retval;
@@ -373,7 +356,7 @@ long hook_sys_newstat(char __user *filename, struct stat __user *statbuf)
 		data.sys_id = 4;
 		data.inode = get_inode();
 		data.pid = current->pid;
-		data.mem_loc = 0;
+		data.stack = (unsigned long)current->stack;
 		maldetect_nl_send_syscall(&data);
 	}
 	return retval;
@@ -388,7 +371,7 @@ long hook_sys_newfstat(unsigned int fd, struct stat __user *statbuf)
 		data.sys_id = 5;
 		data.inode = get_inode();
 		data.pid = current->pid;
-		data.mem_loc = 0;
+		data.stack = (unsigned long)current->stack;
 		maldetect_nl_send_syscall(&data);
 	}
 	return retval;
@@ -403,13 +386,13 @@ long hook_sys_newlstat(char __user *filename, struct stat __user *statbuf)
 		data.sys_id = 6;
 		data.inode = get_inode();
 		data.pid = current->pid;
-		data.mem_loc = 0;
+		data.stack = (unsigned long)current->stack;
 		maldetect_nl_send_syscall(&data);
 	}
 	return retval;
 }
 
-long hook_sys_poll(struct pollfd __user *ufds, unsigned int nfds, int timeout)
+long hook_sys_poll(struct pollfd __user *ufds, unsigned int nfds, long timeout)
 {
 	long retval = ref_sys_poll(ufds,nfds,timeout);
 	if (maldetect_userspace_pid > 0 && current->pid != maldetect_userspace_pid)
@@ -418,7 +401,7 @@ long hook_sys_poll(struct pollfd __user *ufds, unsigned int nfds, int timeout)
 		data.sys_id = 7;
 		data.inode = get_inode();
 		data.pid = current->pid;
-		data.mem_loc = 0;
+		data.stack = (unsigned long)current->stack;
 		maldetect_nl_send_syscall(&data);
 	}
 	return retval;
@@ -433,13 +416,13 @@ long hook_sys_lseek(unsigned int fd, off_t offset,   unsigned int origin)
 		data.sys_id = 8;
 		data.inode = get_inode();
 		data.pid = current->pid;
-		data.mem_loc = 0;
+		data.stack = (unsigned long)current->stack;
 		maldetect_nl_send_syscall(&data);
 	}
 	return retval;
 }
 
-long hook_sys_mmap(unsigned long arg0, unsigned long arg1, unsigned long arg2,  unsigned long arg3, unsigned long arg4, unsigned long arg5)
+long hook_sys_mmap(unsigned long arg0, unsigned long arg1, unsigned long arg2, unsigned long arg3, unsigned long arg4, unsigned long arg5)
 {
 	long retval = ref_sys_mmap(arg0,arg1,arg2,arg3,arg4,arg5);
 	if (maldetect_userspace_pid > 0 && current->pid != maldetect_userspace_pid)
@@ -448,7 +431,7 @@ long hook_sys_mmap(unsigned long arg0, unsigned long arg1, unsigned long arg2,  
 		data.sys_id = 9;
 		data.inode = get_inode();
 		data.pid = current->pid;
-		data.mem_loc = 0;
+		data.stack = (unsigned long)current->stack;
 		maldetect_nl_send_syscall(&data);
 	}
 	return retval;
@@ -463,7 +446,7 @@ long hook_sys_mprotect(unsigned long start, size_t len, unsigned long prot)
 		data.sys_id = 10;
 		data.inode = get_inode();
 		data.pid = current->pid;
-		data.mem_loc = 0;
+		data.stack = (unsigned long)current->stack;
 		maldetect_nl_send_syscall(&data);
 	}
 	return retval;
@@ -478,7 +461,7 @@ long hook_sys_munmap(unsigned long addr, size_t len)
 		data.sys_id = 11;
 		data.inode = get_inode();
 		data.pid = current->pid;
-		data.mem_loc = 0;
+		data.stack = (unsigned long)current->stack;
 		maldetect_nl_send_syscall(&data);
 	}
 	return retval;
@@ -493,7 +476,7 @@ long hook_sys_brk(unsigned long brk)
 		data.sys_id = 12;
 		data.inode = get_inode();
 		data.pid = current->pid;
-		data.mem_loc = 0;
+		data.stack = (unsigned long)current->stack;
 		maldetect_nl_send_syscall(&data);
 	}
 	return retval;
@@ -508,7 +491,7 @@ long hook_sys_rt_sigaction(int sig, const struct sigaction __user *act,  struct 
 		data.sys_id = 13;
 		data.inode = get_inode();
 		data.pid = current->pid;
-		data.mem_loc = 0;
+		data.stack = (unsigned long)current->stack;
 		maldetect_nl_send_syscall(&data);
 	}
 	return retval;
@@ -523,7 +506,7 @@ long hook_sys_rt_sigprocmask(int how, sigset_t __user *set, sigset_t __user *ose
 		data.sys_id = 14;
 		data.inode = get_inode();
 		data.pid = current->pid;
-		data.mem_loc = 0;
+		data.stack = (unsigned long)current->stack;
 		maldetect_nl_send_syscall(&data);
 	}
 	return retval;
@@ -538,7 +521,7 @@ long hook_sys_ioctl(unsigned int fd, unsigned int cmd, unsigned long arg)
 		data.sys_id = 16;
 		data.inode = get_inode();
 		data.pid = current->pid;
-		data.mem_loc = 0;
+		data.stack = (unsigned long)current->stack;
 		maldetect_nl_send_syscall(&data);
 	}
 	return retval;
@@ -553,7 +536,7 @@ long hook_sys_pread64(unsigned int fd, char __user *buf,     size_t count, loff_
 		data.sys_id = 17;
 		data.inode = get_inode();
 		data.pid = current->pid;
-		data.mem_loc = 0;
+		data.stack = (unsigned long)current->stack;
 		maldetect_nl_send_syscall(&data);
 	}
 	return retval;
@@ -568,7 +551,7 @@ long hook_sys_pwrite64(unsigned int fd, const char __user *buf,      size_t coun
 		data.sys_id = 18;
 		data.inode = get_inode();
 		data.pid = current->pid;
-		data.mem_loc = 0;
+		data.stack = (unsigned long)current->stack;
 		maldetect_nl_send_syscall(&data);
 	}
 	return retval;
@@ -583,7 +566,7 @@ long hook_sys_readv(unsigned long fd,   const struct iovec __user *vec,   unsign
 		data.sys_id = 19;
 		data.inode = get_inode();
 		data.pid = current->pid;
-		data.mem_loc = 0;
+		data.stack = (unsigned long)current->stack;
 		maldetect_nl_send_syscall(&data);
 	}
 	return retval;
@@ -598,7 +581,7 @@ long hook_sys_writev(unsigned long fd,    const struct iovec __user *vec,    uns
 		data.sys_id = 20;
 		data.inode = get_inode();
 		data.pid = current->pid;
-		data.mem_loc = 0;
+		data.stack = (unsigned long)current->stack;
 		maldetect_nl_send_syscall(&data);
 	}
 	return retval;
@@ -613,7 +596,7 @@ long hook_sys_access(const char __user *filename, int mode)
 		data.sys_id = 21;
 		data.inode = get_inode();
 		data.pid = current->pid;
-		data.mem_loc = 0;
+		data.stack = (unsigned long)current->stack;
 		maldetect_nl_send_syscall(&data);
 	}
 	return retval;
@@ -628,7 +611,7 @@ long hook_sys_pipe(int __user *fildes)
 		data.sys_id = 22;
 		data.inode = get_inode();
 		data.pid = current->pid;
-		data.mem_loc = 0;
+		data.stack = (unsigned long)current->stack;
 		maldetect_nl_send_syscall(&data);
 	}
 	return retval;
@@ -643,7 +626,7 @@ long hook_sys_select(int n, fd_set __user *inp, fd_set __user *outp, fd_set __us
 		data.sys_id = 23;
 		data.inode = get_inode();
 		data.pid = current->pid;
-		data.mem_loc = 0;
+		data.stack = (unsigned long)current->stack;
 		maldetect_nl_send_syscall(&data);
 	}
 	return retval;
@@ -658,7 +641,7 @@ long hook_sys_sched_yield(void)
 		data.sys_id = 24;
 		data.inode = get_inode();
 		data.pid = current->pid;
-		data.mem_loc = 0;
+		data.stack = (unsigned long)current->stack;
 		maldetect_nl_send_syscall(&data);
 	}
 	return retval;
@@ -673,7 +656,7 @@ long hook_sys_mremap(unsigned long addr,    unsigned long old_len, unsigned long
 		data.sys_id = 25;
 		data.inode = get_inode();
 		data.pid = current->pid;
-		data.mem_loc = 0;
+		data.stack = (unsigned long)current->stack;
 		maldetect_nl_send_syscall(&data);
 	}
 	return retval;
@@ -688,7 +671,7 @@ long hook_sys_msync(unsigned long start, size_t len, int flags)
 		data.sys_id = 26;
 		data.inode = get_inode();
 		data.pid = current->pid;
-		data.mem_loc = 0;
+		data.stack = (unsigned long)current->stack;
 		maldetect_nl_send_syscall(&data);
 	}
 	return retval;
@@ -703,7 +686,7 @@ long hook_sys_mincore(unsigned long start, size_t len, unsigned char __user * ve
 		data.sys_id = 27;
 		data.inode = get_inode();
 		data.pid = current->pid;
-		data.mem_loc = 0;
+		data.stack = (unsigned long)current->stack;
 		maldetect_nl_send_syscall(&data);
 	}
 	return retval;
@@ -718,7 +701,7 @@ long hook_sys_madvise(unsigned long start, size_t len, int behavior)
 		data.sys_id = 28;
 		data.inode = get_inode();
 		data.pid = current->pid;
-		data.mem_loc = 0;
+		data.stack = (unsigned long)current->stack;
 		maldetect_nl_send_syscall(&data);
 	}
 	return retval;
@@ -733,7 +716,7 @@ long hook_sys_shmget(key_t key, size_t size, int flag)
 		data.sys_id = 29;
 		data.inode = get_inode();
 		data.pid = current->pid;
-		data.mem_loc = 0;
+		data.stack = (unsigned long)current->stack;
 		maldetect_nl_send_syscall(&data);
 	}
 	return retval;
@@ -748,7 +731,7 @@ long hook_sys_shmat(int shmid, char __user *shmaddr, int shmflg)
 		data.sys_id = 30;
 		data.inode = get_inode();
 		data.pid = current->pid;
-		data.mem_loc = 0;
+		data.stack = (unsigned long)current->stack;
 		maldetect_nl_send_syscall(&data);
 	}
 	return retval;
@@ -763,7 +746,7 @@ long hook_sys_shmctl(int shmid, int cmd, struct shmid_ds __user *buf)
 		data.sys_id = 31;
 		data.inode = get_inode();
 		data.pid = current->pid;
-		data.mem_loc = 0;
+		data.stack = (unsigned long)current->stack;
 		maldetect_nl_send_syscall(&data);
 	}
 	return retval;
@@ -778,7 +761,7 @@ long hook_sys_dup(unsigned int fildes)
 		data.sys_id = 32;
 		data.inode = get_inode();
 		data.pid = current->pid;
-		data.mem_loc = 0;
+		data.stack = (unsigned long)current->stack;
 		maldetect_nl_send_syscall(&data);
 	}
 	return retval;
@@ -793,7 +776,7 @@ long hook_sys_dup2(unsigned int oldfd, unsigned int newfd)
 		data.sys_id = 33;
 		data.inode = get_inode();
 		data.pid = current->pid;
-		data.mem_loc = 0;
+		data.stack = (unsigned long)current->stack;
 		maldetect_nl_send_syscall(&data);
 	}
 	return retval;
@@ -808,7 +791,7 @@ long hook_sys_pause(void)
 		data.sys_id = 34;
 		data.inode = get_inode();
 		data.pid = current->pid;
-		data.mem_loc = 0;
+		data.stack = (unsigned long)current->stack;
 		maldetect_nl_send_syscall(&data);
 	}
 	return retval;
@@ -823,7 +806,7 @@ long hook_sys_nanosleep(struct timespec __user *rqtp, struct timespec __user *rm
 		data.sys_id = 35;
 		data.inode = get_inode();
 		data.pid = current->pid;
-		data.mem_loc = 0;
+		data.stack = (unsigned long)current->stack;
 		maldetect_nl_send_syscall(&data);
 	}
 	return retval;
@@ -838,7 +821,7 @@ long hook_sys_getitimer(int which, struct itimerval __user *value)
 		data.sys_id = 36;
 		data.inode = get_inode();
 		data.pid = current->pid;
-		data.mem_loc = 0;
+		data.stack = (unsigned long)current->stack;
 		maldetect_nl_send_syscall(&data);
 	}
 	return retval;
@@ -853,7 +836,7 @@ long hook_sys_alarm(unsigned int seconds)
 		data.sys_id = 37;
 		data.inode = get_inode();
 		data.pid = current->pid;
-		data.mem_loc = 0;
+		data.stack = (unsigned long)current->stack;
 		maldetect_nl_send_syscall(&data);
 	}
 	return retval;
@@ -868,7 +851,7 @@ long hook_sys_setitimer(int which, struct itimerval __user *value, struct itimer
 		data.sys_id = 38;
 		data.inode = get_inode();
 		data.pid = current->pid;
-		data.mem_loc = 0;
+		data.stack = (unsigned long)current->stack;
 		maldetect_nl_send_syscall(&data);
 	}
 	return retval;
@@ -883,7 +866,7 @@ long hook_sys_getpid(void)
 		data.sys_id = 39;
 		data.inode = get_inode();
 		data.pid = current->pid;
-		data.mem_loc = 0;
+		data.stack = (unsigned long)current->stack;
 		maldetect_nl_send_syscall(&data);
 	}
 	return retval;
@@ -898,7 +881,7 @@ long hook_sys_sendfile64(int out_fd, int in_fd,        loff_t __user *offset, si
 		data.sys_id = 40;
 		data.inode = get_inode();
 		data.pid = current->pid;
-		data.mem_loc = 0;
+		data.stack = (unsigned long)current->stack;
 		maldetect_nl_send_syscall(&data);
 	}
 	return retval;
@@ -913,13 +896,13 @@ long hook_sys_socket(int arg0, int arg1, int arg2)
 		data.sys_id = 41;
 		data.inode = get_inode();
 		data.pid = current->pid;
-		data.mem_loc = 0;
+		data.stack = (unsigned long)current->stack;
 		maldetect_nl_send_syscall(&data);
 	}
 	return retval;
 }
 
-long hook_sys_connect(int arg0, struct sockaddr __user *arg1, int arg2)
+long hook_sys_connect(int arg0, struct sockaddr __user * arg1, int arg2)
 {
 	long retval = ref_sys_connect(arg0,arg1,arg2);
 	if (maldetect_userspace_pid > 0 && current->pid != maldetect_userspace_pid)
@@ -928,13 +911,13 @@ long hook_sys_connect(int arg0, struct sockaddr __user *arg1, int arg2)
 		data.sys_id = 42;
 		data.inode = get_inode();
 		data.pid = current->pid;
-		data.mem_loc = 0;
+		data.stack = (unsigned long)current->stack;
 		maldetect_nl_send_syscall(&data);
 	}
 	return retval;
 }
 
-long hook_sys_accept(int arg0, struct sockaddr __user *arg1, int __user *arg2)
+long hook_sys_accept(int arg0, struct sockaddr __user * arg1, int __user * arg2)
 {
 	long retval = ref_sys_accept(arg0,arg1,arg2);
 	if (maldetect_userspace_pid > 0 && current->pid != maldetect_userspace_pid)
@@ -943,13 +926,13 @@ long hook_sys_accept(int arg0, struct sockaddr __user *arg1, int __user *arg2)
 		data.sys_id = 43;
 		data.inode = get_inode();
 		data.pid = current->pid;
-		data.mem_loc = 0;
+		data.stack = (unsigned long)current->stack;
 		maldetect_nl_send_syscall(&data);
 	}
 	return retval;
 }
 
-long hook_sys_sendto(int arg0, void __user *arg1, size_t arg2, unsigned arg3, struct sockaddr __user *arg4, int arg5)
+long hook_sys_sendto(int arg0, void __user * arg1, size_t arg2, unsigned arg3, struct sockaddr __user * arg4, int arg5)
 {
 	long retval = ref_sys_sendto(arg0,arg1,arg2,arg3,arg4,arg5);
 	if (maldetect_userspace_pid > 0 && current->pid != maldetect_userspace_pid)
@@ -958,13 +941,13 @@ long hook_sys_sendto(int arg0, void __user *arg1, size_t arg2, unsigned arg3, st
 		data.sys_id = 44;
 		data.inode = get_inode();
 		data.pid = current->pid;
-		data.mem_loc = 0;
+		data.stack = (unsigned long)current->stack;
 		maldetect_nl_send_syscall(&data);
 	}
 	return retval;
 }
 
-long hook_sys_recvfrom(int arg0, void __user *arg1, size_t arg2, unsigned arg3, struct sockaddr __user *arg4, int __user *arg5)
+long hook_sys_recvfrom(int arg0, void __user * arg1, size_t arg2, unsigned arg3, struct sockaddr __user * arg4, int __user * arg5)
 {
 	long retval = ref_sys_recvfrom(arg0,arg1,arg2,arg3,arg4,arg5);
 	if (maldetect_userspace_pid > 0 && current->pid != maldetect_userspace_pid)
@@ -973,7 +956,7 @@ long hook_sys_recvfrom(int arg0, void __user *arg1, size_t arg2, unsigned arg3, 
 		data.sys_id = 45;
 		data.inode = get_inode();
 		data.pid = current->pid;
-		data.mem_loc = 0;
+		data.stack = (unsigned long)current->stack;
 		maldetect_nl_send_syscall(&data);
 	}
 	return retval;
@@ -988,7 +971,7 @@ long hook_sys_sendmsg(int fd, struct msghdr __user *msg, unsigned flags)
 		data.sys_id = 46;
 		data.inode = get_inode();
 		data.pid = current->pid;
-		data.mem_loc = 0;
+		data.stack = (unsigned long)current->stack;
 		maldetect_nl_send_syscall(&data);
 	}
 	return retval;
@@ -1003,7 +986,7 @@ long hook_sys_recvmsg(int fd, struct msghdr __user *msg, unsigned flags)
 		data.sys_id = 47;
 		data.inode = get_inode();
 		data.pid = current->pid;
-		data.mem_loc = 0;
+		data.stack = (unsigned long)current->stack;
 		maldetect_nl_send_syscall(&data);
 	}
 	return retval;
@@ -1018,13 +1001,13 @@ long hook_sys_shutdown(int arg0, int arg1)
 		data.sys_id = 48;
 		data.inode = get_inode();
 		data.pid = current->pid;
-		data.mem_loc = 0;
+		data.stack = (unsigned long)current->stack;
 		maldetect_nl_send_syscall(&data);
 	}
 	return retval;
 }
 
-long hook_sys_bind(int arg0, struct sockaddr __user *arg1, int arg2)
+long hook_sys_bind(int arg0, struct sockaddr __user * arg1, int arg2)
 {
 	long retval = ref_sys_bind(arg0,arg1,arg2);
 	if (maldetect_userspace_pid > 0 && current->pid != maldetect_userspace_pid)
@@ -1033,7 +1016,7 @@ long hook_sys_bind(int arg0, struct sockaddr __user *arg1, int arg2)
 		data.sys_id = 49;
 		data.inode = get_inode();
 		data.pid = current->pid;
-		data.mem_loc = 0;
+		data.stack = (unsigned long)current->stack;
 		maldetect_nl_send_syscall(&data);
 	}
 	return retval;
@@ -1048,13 +1031,13 @@ long hook_sys_listen(int arg0, int arg1)
 		data.sys_id = 50;
 		data.inode = get_inode();
 		data.pid = current->pid;
-		data.mem_loc = 0;
+		data.stack = (unsigned long)current->stack;
 		maldetect_nl_send_syscall(&data);
 	}
 	return retval;
 }
 
-long hook_sys_getsockname(int arg0, struct sockaddr __user *arg1, int __user *arg2)
+long hook_sys_getsockname(int arg0, struct sockaddr __user * arg1, int __user * arg2)
 {
 	long retval = ref_sys_getsockname(arg0,arg1,arg2);
 	if (maldetect_userspace_pid > 0 && current->pid != maldetect_userspace_pid)
@@ -1063,13 +1046,13 @@ long hook_sys_getsockname(int arg0, struct sockaddr __user *arg1, int __user *ar
 		data.sys_id = 51;
 		data.inode = get_inode();
 		data.pid = current->pid;
-		data.mem_loc = 0;
+		data.stack = (unsigned long)current->stack;
 		maldetect_nl_send_syscall(&data);
 	}
 	return retval;
 }
 
-long hook_sys_getpeername(int arg0, struct sockaddr __user *arg1, int __user *arg2)
+long hook_sys_getpeername(int arg0, struct sockaddr __user * arg1, int __user * arg2)
 {
 	long retval = ref_sys_getpeername(arg0,arg1,arg2);
 	if (maldetect_userspace_pid > 0 && current->pid != maldetect_userspace_pid)
@@ -1078,13 +1061,13 @@ long hook_sys_getpeername(int arg0, struct sockaddr __user *arg1, int __user *ar
 		data.sys_id = 52;
 		data.inode = get_inode();
 		data.pid = current->pid;
-		data.mem_loc = 0;
+		data.stack = (unsigned long)current->stack;
 		maldetect_nl_send_syscall(&data);
 	}
 	return retval;
 }
 
-long hook_sys_socketpair(int arg0, int arg1, int arg2, int __user *arg3)
+long hook_sys_socketpair(int arg0, int arg1, int arg2, int __user * arg3)
 {
 	long retval = ref_sys_socketpair(arg0,arg1,arg2,arg3);
 	if (maldetect_userspace_pid > 0 && current->pid != maldetect_userspace_pid)
@@ -1093,7 +1076,7 @@ long hook_sys_socketpair(int arg0, int arg1, int arg2, int __user *arg3)
 		data.sys_id = 53;
 		data.inode = get_inode();
 		data.pid = current->pid;
-		data.mem_loc = 0;
+		data.stack = (unsigned long)current->stack;
 		maldetect_nl_send_syscall(&data);
 	}
 	return retval;
@@ -1108,7 +1091,7 @@ long hook_sys_setsockopt(int fd, int level, int optname, char __user *optval, in
 		data.sys_id = 54;
 		data.inode = get_inode();
 		data.pid = current->pid;
-		data.mem_loc = 0;
+		data.stack = (unsigned long)current->stack;
 		maldetect_nl_send_syscall(&data);
 	}
 	return retval;
@@ -1123,25 +1106,10 @@ long hook_sys_getsockopt(int fd, int level, int optname, char __user *optval, in
 		data.sys_id = 55;
 		data.inode = get_inode();
 		data.pid = current->pid;
-		data.mem_loc = 0;
+		data.stack = (unsigned long)current->stack;
 		maldetect_nl_send_syscall(&data);
 	}
 	return retval;
-}
-
-long hook_sys_execve(char __user *arg0, char __user * __user *arg1, char __user * __user *arg2, struct pt_regs *arg3)
-{
-	long retval = ref_sys_execve(arg0, arg1, arg2, arg3);
-	if (maldetect_userspace_pid > 0 && current->pid != maldetect_userspace_pid)
-   {
-      SYSCALL data;
-      data.sys_id = 59;
-      data.inode = get_inode();
-      data.pid = current->pid;
-      data.mem_loc = 0;
-      maldetect_nl_send_syscall(&data);
-   }
-   return retval;
 }
 
 long hook_sys_exit(int error_code)
@@ -1153,7 +1121,7 @@ long hook_sys_exit(int error_code)
 		data.sys_id = 60;
 		data.inode = get_inode();
 		data.pid = current->pid;
-		data.mem_loc = 0;
+		data.stack = (unsigned long)current->stack;
 		maldetect_nl_send_syscall(&data);
 	}
 	return retval;
@@ -1168,7 +1136,7 @@ long hook_sys_wait4(pid_t pid, int __user *stat_addr, int options, struct rusage
 		data.sys_id = 61;
 		data.inode = get_inode();
 		data.pid = current->pid;
-		data.mem_loc = 0;
+		data.stack = (unsigned long)current->stack;
 		maldetect_nl_send_syscall(&data);
 	}
 	return retval;
@@ -1183,13 +1151,13 @@ long hook_sys_kill(int pid, int sig)
 		data.sys_id = 62;
 		data.inode = get_inode();
 		data.pid = current->pid;
-		data.mem_loc = 0;
+		data.stack = (unsigned long)current->stack;
 		maldetect_nl_send_syscall(&data);
 	}
 	return retval;
 }
 
-long hook_sys_uname(struct new_utsname __user *arg0)
+long hook_sys_uname(struct new_utsname __user * arg0)
 {
 	long retval = ref_sys_uname(arg0);
 	if (maldetect_userspace_pid > 0 && current->pid != maldetect_userspace_pid)
@@ -1198,7 +1166,7 @@ long hook_sys_uname(struct new_utsname __user *arg0)
 		data.sys_id = 63;
 		data.inode = get_inode();
 		data.pid = current->pid;
-		data.mem_loc = 0;
+		data.stack = (unsigned long)current->stack;
 		maldetect_nl_send_syscall(&data);
 	}
 	return retval;
@@ -1213,7 +1181,7 @@ long hook_sys_semget(key_t key, int nsems, int semflg)
 		data.sys_id = 64;
 		data.inode = get_inode();
 		data.pid = current->pid;
-		data.mem_loc = 0;
+		data.stack = (unsigned long)current->stack;
 		maldetect_nl_send_syscall(&data);
 	}
 	return retval;
@@ -1228,7 +1196,7 @@ long hook_sys_semop(int semid, struct sembuf __user *sops, unsigned nsops)
 		data.sys_id = 65;
 		data.inode = get_inode();
 		data.pid = current->pid;
-		data.mem_loc = 0;
+		data.stack = (unsigned long)current->stack;
 		maldetect_nl_send_syscall(&data);
 	}
 	return retval;
@@ -1243,7 +1211,7 @@ long hook_sys_semctl(int semid, int semnum, int cmd, union semun arg)
 		data.sys_id = 66;
 		data.inode = get_inode();
 		data.pid = current->pid;
-		data.mem_loc = 0;
+		data.stack = (unsigned long)current->stack;
 		maldetect_nl_send_syscall(&data);
 	}
 	return retval;
@@ -1258,7 +1226,7 @@ long hook_sys_shmdt(char __user *shmaddr)
 		data.sys_id = 67;
 		data.inode = get_inode();
 		data.pid = current->pid;
-		data.mem_loc = 0;
+		data.stack = (unsigned long)current->stack;
 		maldetect_nl_send_syscall(&data);
 	}
 	return retval;
@@ -1273,7 +1241,7 @@ long hook_sys_msgget(key_t key, int msgflg)
 		data.sys_id = 68;
 		data.inode = get_inode();
 		data.pid = current->pid;
-		data.mem_loc = 0;
+		data.stack = (unsigned long)current->stack;
 		maldetect_nl_send_syscall(&data);
 	}
 	return retval;
@@ -1288,7 +1256,7 @@ long hook_sys_msgsnd(int msqid, struct msgbuf __user *msgp, size_t msgsz, int ms
 		data.sys_id = 69;
 		data.inode = get_inode();
 		data.pid = current->pid;
-		data.mem_loc = 0;
+		data.stack = (unsigned long)current->stack;
 		maldetect_nl_send_syscall(&data);
 	}
 	return retval;
@@ -1303,7 +1271,7 @@ long hook_sys_msgrcv(int msqid, struct msgbuf __user *msgp, size_t msgsz, long m
 		data.sys_id = 70;
 		data.inode = get_inode();
 		data.pid = current->pid;
-		data.mem_loc = 0;
+		data.stack = (unsigned long)current->stack;
 		maldetect_nl_send_syscall(&data);
 	}
 	return retval;
@@ -1318,7 +1286,7 @@ long hook_sys_msgctl(int msqid, int cmd, struct msqid_ds __user *buf)
 		data.sys_id = 71;
 		data.inode = get_inode();
 		data.pid = current->pid;
-		data.mem_loc = 0;
+		data.stack = (unsigned long)current->stack;
 		maldetect_nl_send_syscall(&data);
 	}
 	return retval;
@@ -1333,7 +1301,7 @@ long hook_sys_fcntl(unsigned int fd, unsigned int cmd, unsigned long arg)
 		data.sys_id = 72;
 		data.inode = get_inode();
 		data.pid = current->pid;
-		data.mem_loc = 0;
+		data.stack = (unsigned long)current->stack;
 		maldetect_nl_send_syscall(&data);
 	}
 	return retval;
@@ -1348,7 +1316,7 @@ long hook_sys_flock(unsigned int fd, unsigned int cmd)
 		data.sys_id = 73;
 		data.inode = get_inode();
 		data.pid = current->pid;
-		data.mem_loc = 0;
+		data.stack = (unsigned long)current->stack;
 		maldetect_nl_send_syscall(&data);
 	}
 	return retval;
@@ -1363,7 +1331,7 @@ long hook_sys_fsync(unsigned int fd)
 		data.sys_id = 74;
 		data.inode = get_inode();
 		data.pid = current->pid;
-		data.mem_loc = 0;
+		data.stack = (unsigned long)current->stack;
 		maldetect_nl_send_syscall(&data);
 	}
 	return retval;
@@ -1378,7 +1346,7 @@ long hook_sys_fdatasync(unsigned int fd)
 		data.sys_id = 75;
 		data.inode = get_inode();
 		data.pid = current->pid;
-		data.mem_loc = 0;
+		data.stack = (unsigned long)current->stack;
 		maldetect_nl_send_syscall(&data);
 	}
 	return retval;
@@ -1393,7 +1361,7 @@ long hook_sys_truncate(const char __user *path, long length)
 		data.sys_id = 76;
 		data.inode = get_inode();
 		data.pid = current->pid;
-		data.mem_loc = 0;
+		data.stack = (unsigned long)current->stack;
 		maldetect_nl_send_syscall(&data);
 	}
 	return retval;
@@ -1408,7 +1376,7 @@ long hook_sys_ftruncate(unsigned int fd, unsigned long length)
 		data.sys_id = 77;
 		data.inode = get_inode();
 		data.pid = current->pid;
-		data.mem_loc = 0;
+		data.stack = (unsigned long)current->stack;
 		maldetect_nl_send_syscall(&data);
 	}
 	return retval;
@@ -1423,7 +1391,7 @@ long hook_sys_getdents(unsigned int fd, struct linux_dirent __user *dirent, unsi
 		data.sys_id = 78;
 		data.inode = get_inode();
 		data.pid = current->pid;
-		data.mem_loc = 0;
+		data.stack = (unsigned long)current->stack;
 		maldetect_nl_send_syscall(&data);
 	}
 	return retval;
@@ -1438,7 +1406,7 @@ long hook_sys_getcwd(char __user *buf, unsigned long size)
 		data.sys_id = 79;
 		data.inode = get_inode();
 		data.pid = current->pid;
-		data.mem_loc = 0;
+		data.stack = (unsigned long)current->stack;
 		maldetect_nl_send_syscall(&data);
 	}
 	return retval;
@@ -1453,7 +1421,7 @@ long hook_sys_chdir(const char __user *filename)
 		data.sys_id = 80;
 		data.inode = get_inode();
 		data.pid = current->pid;
-		data.mem_loc = 0;
+		data.stack = (unsigned long)current->stack;
 		maldetect_nl_send_syscall(&data);
 	}
 	return retval;
@@ -1468,7 +1436,7 @@ long hook_sys_fchdir(unsigned int fd)
 		data.sys_id = 81;
 		data.inode = get_inode();
 		data.pid = current->pid;
-		data.mem_loc = 0;
+		data.stack = (unsigned long)current->stack;
 		maldetect_nl_send_syscall(&data);
 	}
 	return retval;
@@ -1483,7 +1451,7 @@ long hook_sys_rename(const char __user *oldname, const char __user *newname)
 		data.sys_id = 82;
 		data.inode = get_inode();
 		data.pid = current->pid;
-		data.mem_loc = 0;
+		data.stack = (unsigned long)current->stack;
 		maldetect_nl_send_syscall(&data);
 	}
 	return retval;
@@ -1498,7 +1466,7 @@ long hook_sys_mkdir(const char __user *pathname, int mode)
 		data.sys_id = 83;
 		data.inode = get_inode();
 		data.pid = current->pid;
-		data.mem_loc = 0;
+		data.stack = (unsigned long)current->stack;
 		maldetect_nl_send_syscall(&data);
 	}
 	return retval;
@@ -1513,7 +1481,7 @@ long hook_sys_rmdir(const char __user *pathname)
 		data.sys_id = 84;
 		data.inode = get_inode();
 		data.pid = current->pid;
-		data.mem_loc = 0;
+		data.stack = (unsigned long)current->stack;
 		maldetect_nl_send_syscall(&data);
 	}
 	return retval;
@@ -1528,7 +1496,7 @@ long hook_sys_creat(const char __user *pathname, int mode)
 		data.sys_id = 85;
 		data.inode = get_inode();
 		data.pid = current->pid;
-		data.mem_loc = 0;
+		data.stack = (unsigned long)current->stack;
 		maldetect_nl_send_syscall(&data);
 	}
 	return retval;
@@ -1543,7 +1511,7 @@ long hook_sys_link(const char __user *oldname, const char __user *newname)
 		data.sys_id = 86;
 		data.inode = get_inode();
 		data.pid = current->pid;
-		data.mem_loc = 0;
+		data.stack = (unsigned long)current->stack;
 		maldetect_nl_send_syscall(&data);
 	}
 	return retval;
@@ -1558,7 +1526,7 @@ long hook_sys_unlink(const char __user *pathname)
 		data.sys_id = 87;
 		data.inode = get_inode();
 		data.pid = current->pid;
-		data.mem_loc = 0;
+		data.stack = (unsigned long)current->stack;
 		maldetect_nl_send_syscall(&data);
 	}
 	return retval;
@@ -1573,7 +1541,7 @@ long hook_sys_symlink(const char __user *old, const char __user *new)
 		data.sys_id = 88;
 		data.inode = get_inode();
 		data.pid = current->pid;
-		data.mem_loc = 0;
+		data.stack = (unsigned long)current->stack;
 		maldetect_nl_send_syscall(&data);
 	}
 	return retval;
@@ -1588,7 +1556,7 @@ long hook_sys_readlink(const char __user *path, char __user *buf, int bufsiz)
 		data.sys_id = 89;
 		data.inode = get_inode();
 		data.pid = current->pid;
-		data.mem_loc = 0;
+		data.stack = (unsigned long)current->stack;
 		maldetect_nl_send_syscall(&data);
 	}
 	return retval;
@@ -1603,7 +1571,7 @@ long hook_sys_chmod(const char __user *filename, mode_t mode)
 		data.sys_id = 90;
 		data.inode = get_inode();
 		data.pid = current->pid;
-		data.mem_loc = 0;
+		data.stack = (unsigned long)current->stack;
 		maldetect_nl_send_syscall(&data);
 	}
 	return retval;
@@ -1618,7 +1586,7 @@ long hook_sys_fchmod(unsigned int fd, mode_t mode)
 		data.sys_id = 91;
 		data.inode = get_inode();
 		data.pid = current->pid;
-		data.mem_loc = 0;
+		data.stack = (unsigned long)current->stack;
 		maldetect_nl_send_syscall(&data);
 	}
 	return retval;
@@ -1633,7 +1601,7 @@ long hook_sys_chown(const char __user *filename, uid_t user, gid_t group)
 		data.sys_id = 92;
 		data.inode = get_inode();
 		data.pid = current->pid;
-		data.mem_loc = 0;
+		data.stack = (unsigned long)current->stack;
 		maldetect_nl_send_syscall(&data);
 	}
 	return retval;
@@ -1648,7 +1616,7 @@ long hook_sys_fchown(unsigned int fd, uid_t user, gid_t group)
 		data.sys_id = 93;
 		data.inode = get_inode();
 		data.pid = current->pid;
-		data.mem_loc = 0;
+		data.stack = (unsigned long)current->stack;
 		maldetect_nl_send_syscall(&data);
 	}
 	return retval;
@@ -1663,7 +1631,7 @@ long hook_sys_lchown(const char __user *filename, uid_t user, gid_t group)
 		data.sys_id = 94;
 		data.inode = get_inode();
 		data.pid = current->pid;
-		data.mem_loc = 0;
+		data.stack = (unsigned long)current->stack;
 		maldetect_nl_send_syscall(&data);
 	}
 	return retval;
@@ -1678,7 +1646,7 @@ long hook_sys_umask(int mask)
 		data.sys_id = 95;
 		data.inode = get_inode();
 		data.pid = current->pid;
-		data.mem_loc = 0;
+		data.stack = (unsigned long)current->stack;
 		maldetect_nl_send_syscall(&data);
 	}
 	return retval;
@@ -1693,7 +1661,7 @@ long hook_sys_gettimeofday(struct timeval __user *tv, struct timezone __user *tz
 		data.sys_id = 96;
 		data.inode = get_inode();
 		data.pid = current->pid;
-		data.mem_loc = 0;
+		data.stack = (unsigned long)current->stack;
 		maldetect_nl_send_syscall(&data);
 	}
 	return retval;
@@ -1708,7 +1676,7 @@ long hook_sys_getrlimit(unsigned int resource, struct rlimit __user *rlim)
 		data.sys_id = 97;
 		data.inode = get_inode();
 		data.pid = current->pid;
-		data.mem_loc = 0;
+		data.stack = (unsigned long)current->stack;
 		maldetect_nl_send_syscall(&data);
 	}
 	return retval;
@@ -1723,7 +1691,7 @@ long hook_sys_getrusage(int who, struct rusage __user *ru)
 		data.sys_id = 98;
 		data.inode = get_inode();
 		data.pid = current->pid;
-		data.mem_loc = 0;
+		data.stack = (unsigned long)current->stack;
 		maldetect_nl_send_syscall(&data);
 	}
 	return retval;
@@ -1738,7 +1706,7 @@ long hook_sys_sysinfo(struct sysinfo __user *info)
 		data.sys_id = 99;
 		data.inode = get_inode();
 		data.pid = current->pid;
-		data.mem_loc = 0;
+		data.stack = (unsigned long)current->stack;
 		maldetect_nl_send_syscall(&data);
 	}
 	return retval;
@@ -1753,7 +1721,7 @@ long hook_sys_times(struct tms __user *tbuf)
 		data.sys_id = 100;
 		data.inode = get_inode();
 		data.pid = current->pid;
-		data.mem_loc = 0;
+		data.stack = (unsigned long)current->stack;
 		maldetect_nl_send_syscall(&data);
 	}
 	return retval;
@@ -1768,7 +1736,7 @@ long hook_sys_ptrace(long request, long pid, long addr, long data)
 		data.sys_id = 101;
 		data.inode = get_inode();
 		data.pid = current->pid;
-		data.mem_loc = 0;
+		data.stack = (unsigned long)current->stack;
 		maldetect_nl_send_syscall(&data);
 	}
 	return retval;
@@ -1783,7 +1751,7 @@ long hook_sys_getuid(void)
 		data.sys_id = 102;
 		data.inode = get_inode();
 		data.pid = current->pid;
-		data.mem_loc = 0;
+		data.stack = (unsigned long)current->stack;
 		maldetect_nl_send_syscall(&data);
 	}
 	return retval;
@@ -1798,7 +1766,7 @@ long hook_sys_syslog(int type, char __user *buf, int len)
 		data.sys_id = 103;
 		data.inode = get_inode();
 		data.pid = current->pid;
-		data.mem_loc = 0;
+		data.stack = (unsigned long)current->stack;
 		maldetect_nl_send_syscall(&data);
 	}
 	return retval;
@@ -1813,7 +1781,7 @@ long hook_sys_getgid(void)
 		data.sys_id = 104;
 		data.inode = get_inode();
 		data.pid = current->pid;
-		data.mem_loc = 0;
+		data.stack = (unsigned long)current->stack;
 		maldetect_nl_send_syscall(&data);
 	}
 	return retval;
@@ -1828,7 +1796,7 @@ long hook_sys_setuid(uid_t uid)
 		data.sys_id = 105;
 		data.inode = get_inode();
 		data.pid = current->pid;
-		data.mem_loc = 0;
+		data.stack = (unsigned long)current->stack;
 		maldetect_nl_send_syscall(&data);
 	}
 	return retval;
@@ -1843,7 +1811,7 @@ long hook_sys_setgid(gid_t gid)
 		data.sys_id = 106;
 		data.inode = get_inode();
 		data.pid = current->pid;
-		data.mem_loc = 0;
+		data.stack = (unsigned long)current->stack;
 		maldetect_nl_send_syscall(&data);
 	}
 	return retval;
@@ -1858,7 +1826,7 @@ long hook_sys_geteuid(void)
 		data.sys_id = 107;
 		data.inode = get_inode();
 		data.pid = current->pid;
-		data.mem_loc = 0;
+		data.stack = (unsigned long)current->stack;
 		maldetect_nl_send_syscall(&data);
 	}
 	return retval;
@@ -1873,7 +1841,7 @@ long hook_sys_getegid(void)
 		data.sys_id = 108;
 		data.inode = get_inode();
 		data.pid = current->pid;
-		data.mem_loc = 0;
+		data.stack = (unsigned long)current->stack;
 		maldetect_nl_send_syscall(&data);
 	}
 	return retval;
@@ -1888,7 +1856,7 @@ long hook_sys_setpgid(pid_t pid, pid_t pgid)
 		data.sys_id = 109;
 		data.inode = get_inode();
 		data.pid = current->pid;
-		data.mem_loc = 0;
+		data.stack = (unsigned long)current->stack;
 		maldetect_nl_send_syscall(&data);
 	}
 	return retval;
@@ -1903,7 +1871,7 @@ long hook_sys_getppid(void)
 		data.sys_id = 110;
 		data.inode = get_inode();
 		data.pid = current->pid;
-		data.mem_loc = 0;
+		data.stack = (unsigned long)current->stack;
 		maldetect_nl_send_syscall(&data);
 	}
 	return retval;
@@ -1918,7 +1886,7 @@ long hook_sys_getpgrp(void)
 		data.sys_id = 111;
 		data.inode = get_inode();
 		data.pid = current->pid;
-		data.mem_loc = 0;
+		data.stack = (unsigned long)current->stack;
 		maldetect_nl_send_syscall(&data);
 	}
 	return retval;
@@ -1933,7 +1901,7 @@ long hook_sys_setsid(void)
 		data.sys_id = 112;
 		data.inode = get_inode();
 		data.pid = current->pid;
-		data.mem_loc = 0;
+		data.stack = (unsigned long)current->stack;
 		maldetect_nl_send_syscall(&data);
 	}
 	return retval;
@@ -1948,7 +1916,7 @@ long hook_sys_setreuid(uid_t ruid, uid_t euid)
 		data.sys_id = 113;
 		data.inode = get_inode();
 		data.pid = current->pid;
-		data.mem_loc = 0;
+		data.stack = (unsigned long)current->stack;
 		maldetect_nl_send_syscall(&data);
 	}
 	return retval;
@@ -1963,7 +1931,7 @@ long hook_sys_setregid(gid_t rgid, gid_t egid)
 		data.sys_id = 114;
 		data.inode = get_inode();
 		data.pid = current->pid;
-		data.mem_loc = 0;
+		data.stack = (unsigned long)current->stack;
 		maldetect_nl_send_syscall(&data);
 	}
 	return retval;
@@ -1978,7 +1946,7 @@ long hook_sys_getgroups(int gidsetsize, gid_t __user *grouplist)
 		data.sys_id = 115;
 		data.inode = get_inode();
 		data.pid = current->pid;
-		data.mem_loc = 0;
+		data.stack = (unsigned long)current->stack;
 		maldetect_nl_send_syscall(&data);
 	}
 	return retval;
@@ -1993,7 +1961,7 @@ long hook_sys_setgroups(int gidsetsize, gid_t __user *grouplist)
 		data.sys_id = 116;
 		data.inode = get_inode();
 		data.pid = current->pid;
-		data.mem_loc = 0;
+		data.stack = (unsigned long)current->stack;
 		maldetect_nl_send_syscall(&data);
 	}
 	return retval;
@@ -2008,7 +1976,7 @@ long hook_sys_setresuid(uid_t ruid, uid_t euid, uid_t suid)
 		data.sys_id = 117;
 		data.inode = get_inode();
 		data.pid = current->pid;
-		data.mem_loc = 0;
+		data.stack = (unsigned long)current->stack;
 		maldetect_nl_send_syscall(&data);
 	}
 	return retval;
@@ -2023,7 +1991,7 @@ long hook_sys_getresuid(uid_t __user *ruid, uid_t __user *euid, uid_t __user *su
 		data.sys_id = 118;
 		data.inode = get_inode();
 		data.pid = current->pid;
-		data.mem_loc = 0;
+		data.stack = (unsigned long)current->stack;
 		maldetect_nl_send_syscall(&data);
 	}
 	return retval;
@@ -2038,7 +2006,7 @@ long hook_sys_setresgid(gid_t rgid, gid_t egid, gid_t sgid)
 		data.sys_id = 119;
 		data.inode = get_inode();
 		data.pid = current->pid;
-		data.mem_loc = 0;
+		data.stack = (unsigned long)current->stack;
 		maldetect_nl_send_syscall(&data);
 	}
 	return retval;
@@ -2053,7 +2021,7 @@ long hook_sys_getresgid(gid_t __user *rgid, gid_t __user *egid, gid_t __user *sg
 		data.sys_id = 120;
 		data.inode = get_inode();
 		data.pid = current->pid;
-		data.mem_loc = 0;
+		data.stack = (unsigned long)current->stack;
 		maldetect_nl_send_syscall(&data);
 	}
 	return retval;
@@ -2068,7 +2036,7 @@ long hook_sys_getpgid(pid_t pid)
 		data.sys_id = 121;
 		data.inode = get_inode();
 		data.pid = current->pid;
-		data.mem_loc = 0;
+		data.stack = (unsigned long)current->stack;
 		maldetect_nl_send_syscall(&data);
 	}
 	return retval;
@@ -2083,7 +2051,7 @@ long hook_sys_setfsuid(uid_t uid)
 		data.sys_id = 122;
 		data.inode = get_inode();
 		data.pid = current->pid;
-		data.mem_loc = 0;
+		data.stack = (unsigned long)current->stack;
 		maldetect_nl_send_syscall(&data);
 	}
 	return retval;
@@ -2098,7 +2066,7 @@ long hook_sys_setfsgid(gid_t gid)
 		data.sys_id = 123;
 		data.inode = get_inode();
 		data.pid = current->pid;
-		data.mem_loc = 0;
+		data.stack = (unsigned long)current->stack;
 		maldetect_nl_send_syscall(&data);
 	}
 	return retval;
@@ -2113,7 +2081,7 @@ long hook_sys_getsid(pid_t pid)
 		data.sys_id = 124;
 		data.inode = get_inode();
 		data.pid = current->pid;
-		data.mem_loc = 0;
+		data.stack = (unsigned long)current->stack;
 		maldetect_nl_send_syscall(&data);
 	}
 	return retval;
@@ -2128,7 +2096,7 @@ long hook_sys_capget(cap_user_header_t header, cap_user_data_t dataptr)
 		data.sys_id = 125;
 		data.inode = get_inode();
 		data.pid = current->pid;
-		data.mem_loc = 0;
+		data.stack = (unsigned long)current->stack;
 		maldetect_nl_send_syscall(&data);
 	}
 	return retval;
@@ -2143,7 +2111,7 @@ long hook_sys_capset(cap_user_header_t header, const cap_user_data_t data)
 		data.sys_id = 126;
 		data.inode = get_inode();
 		data.pid = current->pid;
-		data.mem_loc = 0;
+		data.stack = (unsigned long)current->stack;
 		maldetect_nl_send_syscall(&data);
 	}
 	return retval;
@@ -2158,7 +2126,7 @@ long hook_sys_rt_sigpending(sigset_t __user *set, size_t sigsetsize)
 		data.sys_id = 127;
 		data.inode = get_inode();
 		data.pid = current->pid;
-		data.mem_loc = 0;
+		data.stack = (unsigned long)current->stack;
 		maldetect_nl_send_syscall(&data);
 	}
 	return retval;
@@ -2173,7 +2141,7 @@ long hook_sys_rt_sigtimedwait(const sigset_t __user *uthese, siginfo_t __user *u
 		data.sys_id = 128;
 		data.inode = get_inode();
 		data.pid = current->pid;
-		data.mem_loc = 0;
+		data.stack = (unsigned long)current->stack;
 		maldetect_nl_send_syscall(&data);
 	}
 	return retval;
@@ -2188,7 +2156,7 @@ long hook_sys_rt_sigqueueinfo(int pid, int sig, siginfo_t __user *uinfo)
 		data.sys_id = 129;
 		data.inode = get_inode();
 		data.pid = current->pid;
-		data.mem_loc = 0;
+		data.stack = (unsigned long)current->stack;
 		maldetect_nl_send_syscall(&data);
 	}
 	return retval;
@@ -2203,7 +2171,7 @@ long hook_sys_rt_sigsuspend(sigset_t __user *unewset, size_t sigsetsize)
 		data.sys_id = 130;
 		data.inode = get_inode();
 		data.pid = current->pid;
-		data.mem_loc = 0;
+		data.stack = (unsigned long)current->stack;
 		maldetect_nl_send_syscall(&data);
 	}
 	return retval;
@@ -2218,7 +2186,7 @@ long hook_sys_utime(char __user *filename, struct utimbuf __user *times)
 		data.sys_id = 132;
 		data.inode = get_inode();
 		data.pid = current->pid;
-		data.mem_loc = 0;
+		data.stack = (unsigned long)current->stack;
 		maldetect_nl_send_syscall(&data);
 	}
 	return retval;
@@ -2233,7 +2201,7 @@ long hook_sys_mknod(const char __user *filename, int mode, unsigned dev)
 		data.sys_id = 133;
 		data.inode = get_inode();
 		data.pid = current->pid;
-		data.mem_loc = 0;
+		data.stack = (unsigned long)current->stack;
 		maldetect_nl_send_syscall(&data);
 	}
 	return retval;
@@ -2248,13 +2216,13 @@ long hook_sys_ni_syscall(void)
 		data.sys_id = 134;
 		data.inode = get_inode();
 		data.pid = current->pid;
-		data.mem_loc = 0;
+		data.stack = (unsigned long)current->stack;
 		maldetect_nl_send_syscall(&data);
 	}
 	return retval;
 }
 
-long hook_sys_personality(unsigned int personality)
+long hook_sys_personality(u_long personality)
 {
 	long retval = ref_sys_personality(personality);
 	if (maldetect_userspace_pid > 0 && current->pid != maldetect_userspace_pid)
@@ -2263,7 +2231,7 @@ long hook_sys_personality(unsigned int personality)
 		data.sys_id = 135;
 		data.inode = get_inode();
 		data.pid = current->pid;
-		data.mem_loc = 0;
+		data.stack = (unsigned long)current->stack;
 		maldetect_nl_send_syscall(&data);
 	}
 	return retval;
@@ -2278,7 +2246,7 @@ long hook_sys_ustat(unsigned dev, struct ustat __user *ubuf)
 		data.sys_id = 136;
 		data.inode = get_inode();
 		data.pid = current->pid;
-		data.mem_loc = 0;
+		data.stack = (unsigned long)current->stack;
 		maldetect_nl_send_syscall(&data);
 	}
 	return retval;
@@ -2293,7 +2261,7 @@ long hook_sys_statfs(const char __user * path, struct statfs __user *buf)
 		data.sys_id = 137;
 		data.inode = get_inode();
 		data.pid = current->pid;
-		data.mem_loc = 0;
+		data.stack = (unsigned long)current->stack;
 		maldetect_nl_send_syscall(&data);
 	}
 	return retval;
@@ -2308,7 +2276,7 @@ long hook_sys_fstatfs(unsigned int fd, struct statfs __user *buf)
 		data.sys_id = 138;
 		data.inode = get_inode();
 		data.pid = current->pid;
-		data.mem_loc = 0;
+		data.stack = (unsigned long)current->stack;
 		maldetect_nl_send_syscall(&data);
 	}
 	return retval;
@@ -2323,7 +2291,7 @@ long hook_sys_sysfs(int option, unsigned long arg1, unsigned long arg2)
 		data.sys_id = 139;
 		data.inode = get_inode();
 		data.pid = current->pid;
-		data.mem_loc = 0;
+		data.stack = (unsigned long)current->stack;
 		maldetect_nl_send_syscall(&data);
 	}
 	return retval;
@@ -2338,7 +2306,7 @@ long hook_sys_getpriority(int which, int who)
 		data.sys_id = 140;
 		data.inode = get_inode();
 		data.pid = current->pid;
-		data.mem_loc = 0;
+		data.stack = (unsigned long)current->stack;
 		maldetect_nl_send_syscall(&data);
 	}
 	return retval;
@@ -2353,7 +2321,7 @@ long hook_sys_setpriority(int which, int who, int niceval)
 		data.sys_id = 141;
 		data.inode = get_inode();
 		data.pid = current->pid;
-		data.mem_loc = 0;
+		data.stack = (unsigned long)current->stack;
 		maldetect_nl_send_syscall(&data);
 	}
 	return retval;
@@ -2368,7 +2336,7 @@ long hook_sys_sched_setparam(pid_t pid, struct sched_param __user *param)
 		data.sys_id = 142;
 		data.inode = get_inode();
 		data.pid = current->pid;
-		data.mem_loc = 0;
+		data.stack = (unsigned long)current->stack;
 		maldetect_nl_send_syscall(&data);
 	}
 	return retval;
@@ -2383,7 +2351,7 @@ long hook_sys_sched_getparam(pid_t pid, struct sched_param __user *param)
 		data.sys_id = 143;
 		data.inode = get_inode();
 		data.pid = current->pid;
-		data.mem_loc = 0;
+		data.stack = (unsigned long)current->stack;
 		maldetect_nl_send_syscall(&data);
 	}
 	return retval;
@@ -2398,7 +2366,7 @@ long hook_sys_sched_setscheduler(pid_t pid, int policy, struct sched_param __use
 		data.sys_id = 144;
 		data.inode = get_inode();
 		data.pid = current->pid;
-		data.mem_loc = 0;
+		data.stack = (unsigned long)current->stack;
 		maldetect_nl_send_syscall(&data);
 	}
 	return retval;
@@ -2413,7 +2381,7 @@ long hook_sys_sched_getscheduler(pid_t pid)
 		data.sys_id = 145;
 		data.inode = get_inode();
 		data.pid = current->pid;
-		data.mem_loc = 0;
+		data.stack = (unsigned long)current->stack;
 		maldetect_nl_send_syscall(&data);
 	}
 	return retval;
@@ -2428,7 +2396,7 @@ long hook_sys_sched_get_priority_max(int policy)
 		data.sys_id = 146;
 		data.inode = get_inode();
 		data.pid = current->pid;
-		data.mem_loc = 0;
+		data.stack = (unsigned long)current->stack;
 		maldetect_nl_send_syscall(&data);
 	}
 	return retval;
@@ -2443,7 +2411,7 @@ long hook_sys_sched_get_priority_min(int policy)
 		data.sys_id = 147;
 		data.inode = get_inode();
 		data.pid = current->pid;
-		data.mem_loc = 0;
+		data.stack = (unsigned long)current->stack;
 		maldetect_nl_send_syscall(&data);
 	}
 	return retval;
@@ -2458,7 +2426,7 @@ long hook_sys_sched_rr_get_interval(pid_t pid, struct timespec __user *interval)
 		data.sys_id = 148;
 		data.inode = get_inode();
 		data.pid = current->pid;
-		data.mem_loc = 0;
+		data.stack = (unsigned long)current->stack;
 		maldetect_nl_send_syscall(&data);
 	}
 	return retval;
@@ -2473,7 +2441,7 @@ long hook_sys_mlock(unsigned long start, size_t len)
 		data.sys_id = 149;
 		data.inode = get_inode();
 		data.pid = current->pid;
-		data.mem_loc = 0;
+		data.stack = (unsigned long)current->stack;
 		maldetect_nl_send_syscall(&data);
 	}
 	return retval;
@@ -2488,7 +2456,7 @@ long hook_sys_munlock(unsigned long start, size_t len)
 		data.sys_id = 150;
 		data.inode = get_inode();
 		data.pid = current->pid;
-		data.mem_loc = 0;
+		data.stack = (unsigned long)current->stack;
 		maldetect_nl_send_syscall(&data);
 	}
 	return retval;
@@ -2503,7 +2471,7 @@ long hook_sys_mlockall(int flags)
 		data.sys_id = 151;
 		data.inode = get_inode();
 		data.pid = current->pid;
-		data.mem_loc = 0;
+		data.stack = (unsigned long)current->stack;
 		maldetect_nl_send_syscall(&data);
 	}
 	return retval;
@@ -2518,7 +2486,7 @@ long hook_sys_munlockall(void)
 		data.sys_id = 152;
 		data.inode = get_inode();
 		data.pid = current->pid;
-		data.mem_loc = 0;
+		data.stack = (unsigned long)current->stack;
 		maldetect_nl_send_syscall(&data);
 	}
 	return retval;
@@ -2533,13 +2501,13 @@ long hook_sys_vhangup(void)
 		data.sys_id = 153;
 		data.inode = get_inode();
 		data.pid = current->pid;
-		data.mem_loc = 0;
+		data.stack = (unsigned long)current->stack;
 		maldetect_nl_send_syscall(&data);
 	}
 	return retval;
 }
 
-int hook_sys_modify_ldt(int arg0, void __user *arg1, unsigned long arg2)
+int hook_sys_modify_ldt(int arg0, void __user * arg1, unsigned long arg2)
 {
 	int retval = ref_sys_modify_ldt(arg0,arg1,arg2);
 	if (maldetect_userspace_pid > 0 && current->pid != maldetect_userspace_pid)
@@ -2548,7 +2516,7 @@ int hook_sys_modify_ldt(int arg0, void __user *arg1, unsigned long arg2)
 		data.sys_id = 154;
 		data.inode = get_inode();
 		data.pid = current->pid;
-		data.mem_loc = 0;
+		data.stack = (unsigned long)current->stack;
 		maldetect_nl_send_syscall(&data);
 	}
 	return retval;
@@ -2563,7 +2531,7 @@ long hook_sys_pivot_root(const char __user *new_root, const char __user *put_old
 		data.sys_id = 155;
 		data.inode = get_inode();
 		data.pid = current->pid;
-		data.mem_loc = 0;
+		data.stack = (unsigned long)current->stack;
 		maldetect_nl_send_syscall(&data);
 	}
 	return retval;
@@ -2578,7 +2546,7 @@ long hook_sys_sysctl(struct __sysctl_args __user *args)
 		data.sys_id = 156;
 		data.inode = get_inode();
 		data.pid = current->pid;
-		data.mem_loc = 0;
+		data.stack = (unsigned long)current->stack;
 		maldetect_nl_send_syscall(&data);
 	}
 	return retval;
@@ -2593,7 +2561,7 @@ long hook_sys_prctl(int option, unsigned long arg2, unsigned long arg3, unsigned
 		data.sys_id = 157;
 		data.inode = get_inode();
 		data.pid = current->pid;
-		data.mem_loc = 0;
+		data.stack = (unsigned long)current->stack;
 		maldetect_nl_send_syscall(&data);
 	}
 	return retval;
@@ -2608,7 +2576,7 @@ long hook_sys_arch_prctl(int arg0, unsigned long arg1)
 		data.sys_id = 158;
 		data.inode = get_inode();
 		data.pid = current->pid;
-		data.mem_loc = 0;
+		data.stack = (unsigned long)current->stack;
 		maldetect_nl_send_syscall(&data);
 	}
 	return retval;
@@ -2623,7 +2591,7 @@ long hook_sys_adjtimex(struct timex __user *txc_p)
 		data.sys_id = 159;
 		data.inode = get_inode();
 		data.pid = current->pid;
-		data.mem_loc = 0;
+		data.stack = (unsigned long)current->stack;
 		maldetect_nl_send_syscall(&data);
 	}
 	return retval;
@@ -2638,7 +2606,7 @@ long hook_sys_setrlimit(unsigned int resource, struct rlimit __user *rlim)
 		data.sys_id = 160;
 		data.inode = get_inode();
 		data.pid = current->pid;
-		data.mem_loc = 0;
+		data.stack = (unsigned long)current->stack;
 		maldetect_nl_send_syscall(&data);
 	}
 	return retval;
@@ -2653,7 +2621,7 @@ long hook_sys_chroot(const char __user *filename)
 		data.sys_id = 161;
 		data.inode = get_inode();
 		data.pid = current->pid;
-		data.mem_loc = 0;
+		data.stack = (unsigned long)current->stack;
 		maldetect_nl_send_syscall(&data);
 	}
 	return retval;
@@ -2668,7 +2636,7 @@ long hook_sys_sync(void)
 		data.sys_id = 162;
 		data.inode = get_inode();
 		data.pid = current->pid;
-		data.mem_loc = 0;
+		data.stack = (unsigned long)current->stack;
 		maldetect_nl_send_syscall(&data);
 	}
 	return retval;
@@ -2683,7 +2651,7 @@ long hook_sys_acct(const char __user *name)
 		data.sys_id = 163;
 		data.inode = get_inode();
 		data.pid = current->pid;
-		data.mem_loc = 0;
+		data.stack = (unsigned long)current->stack;
 		maldetect_nl_send_syscall(&data);
 	}
 	return retval;
@@ -2698,7 +2666,7 @@ long hook_sys_settimeofday(struct timeval __user *tv, struct timezone __user *tz
 		data.sys_id = 164;
 		data.inode = get_inode();
 		data.pid = current->pid;
-		data.mem_loc = 0;
+		data.stack = (unsigned long)current->stack;
 		maldetect_nl_send_syscall(&data);
 	}
 	return retval;
@@ -2713,7 +2681,7 @@ long hook_sys_mount(char __user *dev_name, char __user *dir_name, char __user *t
 		data.sys_id = 165;
 		data.inode = get_inode();
 		data.pid = current->pid;
-		data.mem_loc = 0;
+		data.stack = (unsigned long)current->stack;
 		maldetect_nl_send_syscall(&data);
 	}
 	return retval;
@@ -2728,7 +2696,7 @@ long hook_sys_umount(char __user *name, int flags)
 		data.sys_id = 166;
 		data.inode = get_inode();
 		data.pid = current->pid;
-		data.mem_loc = 0;
+		data.stack = (unsigned long)current->stack;
 		maldetect_nl_send_syscall(&data);
 	}
 	return retval;
@@ -2743,7 +2711,7 @@ long hook_sys_swapon(const char __user *specialfile, int swap_flags)
 		data.sys_id = 167;
 		data.inode = get_inode();
 		data.pid = current->pid;
-		data.mem_loc = 0;
+		data.stack = (unsigned long)current->stack;
 		maldetect_nl_send_syscall(&data);
 	}
 	return retval;
@@ -2758,7 +2726,7 @@ long hook_sys_swapoff(const char __user *specialfile)
 		data.sys_id = 168;
 		data.inode = get_inode();
 		data.pid = current->pid;
-		data.mem_loc = 0;
+		data.stack = (unsigned long)current->stack;
 		maldetect_nl_send_syscall(&data);
 	}
 	return retval;
@@ -2773,7 +2741,7 @@ long hook_sys_reboot(int magic1, int magic2, unsigned int cmd, void __user *arg)
 		data.sys_id = 169;
 		data.inode = get_inode();
 		data.pid = current->pid;
-		data.mem_loc = 0;
+		data.stack = (unsigned long)current->stack;
 		maldetect_nl_send_syscall(&data);
 	}
 	return retval;
@@ -2788,7 +2756,7 @@ long hook_sys_sethostname(char __user *name, int len)
 		data.sys_id = 170;
 		data.inode = get_inode();
 		data.pid = current->pid;
-		data.mem_loc = 0;
+		data.stack = (unsigned long)current->stack;
 		maldetect_nl_send_syscall(&data);
 	}
 	return retval;
@@ -2803,7 +2771,7 @@ long hook_sys_setdomainname(char __user *name, int len)
 		data.sys_id = 171;
 		data.inode = get_inode();
 		data.pid = current->pid;
-		data.mem_loc = 0;
+		data.stack = (unsigned long)current->stack;
 		maldetect_nl_send_syscall(&data);
 	}
 	return retval;
@@ -2818,7 +2786,7 @@ long hook_sys_ioperm(unsigned long arg0, unsigned long arg1, int arg2)
 		data.sys_id = 173;
 		data.inode = get_inode();
 		data.pid = current->pid;
-		data.mem_loc = 0;
+		data.stack = (unsigned long)current->stack;
 		maldetect_nl_send_syscall(&data);
 	}
 	return retval;
@@ -2833,7 +2801,7 @@ long hook_sys_init_module(void __user *umod, unsigned long len, const char __use
 		data.sys_id = 175;
 		data.inode = get_inode();
 		data.pid = current->pid;
-		data.mem_loc = 0;
+		data.stack = (unsigned long)current->stack;
 		maldetect_nl_send_syscall(&data);
 	}
 	return retval;
@@ -2848,7 +2816,7 @@ long hook_sys_delete_module(const char __user *name_user, unsigned int flags)
 		data.sys_id = 176;
 		data.inode = get_inode();
 		data.pid = current->pid;
-		data.mem_loc = 0;
+		data.stack = (unsigned long)current->stack;
 		maldetect_nl_send_syscall(&data);
 	}
 	return retval;
@@ -2863,7 +2831,7 @@ long hook_sys_quotactl(unsigned int cmd, const char __user *special, qid_t id, v
 		data.sys_id = 179;
 		data.inode = get_inode();
 		data.pid = current->pid;
-		data.mem_loc = 0;
+		data.stack = (unsigned long)current->stack;
 		maldetect_nl_send_syscall(&data);
 	}
 	return retval;
@@ -2878,7 +2846,7 @@ long hook_sys_nfsservctl(int cmd, struct nfsctl_arg __user *arg, void __user *re
 		data.sys_id = 180;
 		data.inode = get_inode();
 		data.pid = current->pid;
-		data.mem_loc = 0;
+		data.stack = (unsigned long)current->stack;
 		maldetect_nl_send_syscall(&data);
 	}
 	return retval;
@@ -2893,7 +2861,7 @@ long hook_sys_gettid(void)
 		data.sys_id = 186;
 		data.inode = get_inode();
 		data.pid = current->pid;
-		data.mem_loc = 0;
+		data.stack = (unsigned long)current->stack;
 		maldetect_nl_send_syscall(&data);
 	}
 	return retval;
@@ -2908,7 +2876,7 @@ long hook_sys_readahead(int fd, loff_t offset, size_t count)
 		data.sys_id = 187;
 		data.inode = get_inode();
 		data.pid = current->pid;
-		data.mem_loc = 0;
+		data.stack = (unsigned long)current->stack;
 		maldetect_nl_send_syscall(&data);
 	}
 	return retval;
@@ -2923,7 +2891,7 @@ long hook_sys_setxattr(const char __user *path, const char __user *name,      co
 		data.sys_id = 188;
 		data.inode = get_inode();
 		data.pid = current->pid;
-		data.mem_loc = 0;
+		data.stack = (unsigned long)current->stack;
 		maldetect_nl_send_syscall(&data);
 	}
 	return retval;
@@ -2938,7 +2906,7 @@ long hook_sys_lsetxattr(const char __user *path, const char __user *name,       
 		data.sys_id = 189;
 		data.inode = get_inode();
 		data.pid = current->pid;
-		data.mem_loc = 0;
+		data.stack = (unsigned long)current->stack;
 		maldetect_nl_send_syscall(&data);
 	}
 	return retval;
@@ -2953,7 +2921,7 @@ long hook_sys_fsetxattr(int fd, const char __user *name,       const void __user
 		data.sys_id = 190;
 		data.inode = get_inode();
 		data.pid = current->pid;
-		data.mem_loc = 0;
+		data.stack = (unsigned long)current->stack;
 		maldetect_nl_send_syscall(&data);
 	}
 	return retval;
@@ -2968,7 +2936,7 @@ long hook_sys_getxattr(const char __user *path, const char __user *name,      vo
 		data.sys_id = 191;
 		data.inode = get_inode();
 		data.pid = current->pid;
-		data.mem_loc = 0;
+		data.stack = (unsigned long)current->stack;
 		maldetect_nl_send_syscall(&data);
 	}
 	return retval;
@@ -2983,7 +2951,7 @@ long hook_sys_lgetxattr(const char __user *path, const char __user *name,       
 		data.sys_id = 192;
 		data.inode = get_inode();
 		data.pid = current->pid;
-		data.mem_loc = 0;
+		data.stack = (unsigned long)current->stack;
 		maldetect_nl_send_syscall(&data);
 	}
 	return retval;
@@ -2998,7 +2966,7 @@ long hook_sys_fgetxattr(int fd, const char __user *name,       void __user *valu
 		data.sys_id = 193;
 		data.inode = get_inode();
 		data.pid = current->pid;
-		data.mem_loc = 0;
+		data.stack = (unsigned long)current->stack;
 		maldetect_nl_send_syscall(&data);
 	}
 	return retval;
@@ -3013,7 +2981,7 @@ long hook_sys_listxattr(const char __user *path, char __user *list,       size_t
 		data.sys_id = 194;
 		data.inode = get_inode();
 		data.pid = current->pid;
-		data.mem_loc = 0;
+		data.stack = (unsigned long)current->stack;
 		maldetect_nl_send_syscall(&data);
 	}
 	return retval;
@@ -3028,7 +2996,7 @@ long hook_sys_llistxattr(const char __user *path, char __user *list,        size
 		data.sys_id = 195;
 		data.inode = get_inode();
 		data.pid = current->pid;
-		data.mem_loc = 0;
+		data.stack = (unsigned long)current->stack;
 		maldetect_nl_send_syscall(&data);
 	}
 	return retval;
@@ -3043,7 +3011,7 @@ long hook_sys_flistxattr(int fd, char __user *list, size_t size)
 		data.sys_id = 196;
 		data.inode = get_inode();
 		data.pid = current->pid;
-		data.mem_loc = 0;
+		data.stack = (unsigned long)current->stack;
 		maldetect_nl_send_syscall(&data);
 	}
 	return retval;
@@ -3058,7 +3026,7 @@ long hook_sys_removexattr(const char __user *path, const char __user *name)
 		data.sys_id = 197;
 		data.inode = get_inode();
 		data.pid = current->pid;
-		data.mem_loc = 0;
+		data.stack = (unsigned long)current->stack;
 		maldetect_nl_send_syscall(&data);
 	}
 	return retval;
@@ -3073,7 +3041,7 @@ long hook_sys_lremovexattr(const char __user *path,  const char __user *name)
 		data.sys_id = 198;
 		data.inode = get_inode();
 		data.pid = current->pid;
-		data.mem_loc = 0;
+		data.stack = (unsigned long)current->stack;
 		maldetect_nl_send_syscall(&data);
 	}
 	return retval;
@@ -3088,7 +3056,7 @@ long hook_sys_fremovexattr(int fd, const char __user *name)
 		data.sys_id = 199;
 		data.inode = get_inode();
 		data.pid = current->pid;
-		data.mem_loc = 0;
+		data.stack = (unsigned long)current->stack;
 		maldetect_nl_send_syscall(&data);
 	}
 	return retval;
@@ -3103,7 +3071,7 @@ long hook_sys_tkill(int pid, int sig)
 		data.sys_id = 200;
 		data.inode = get_inode();
 		data.pid = current->pid;
-		data.mem_loc = 0;
+		data.stack = (unsigned long)current->stack;
 		maldetect_nl_send_syscall(&data);
 	}
 	return retval;
@@ -3118,7 +3086,7 @@ long hook_sys_time(time_t __user *tloc)
 		data.sys_id = 100;
 		data.inode = get_inode();
 		data.pid = current->pid;
-		data.mem_loc = 0;
+		data.stack = (unsigned long)current->stack;
 		maldetect_nl_send_syscall(&data);
 	}
 	return retval;
@@ -3133,7 +3101,7 @@ long hook_sys_futex(u32 __user *uaddr, int op, u32 val, struct timespec __user *
 		data.sys_id = 202;
 		data.inode = get_inode();
 		data.pid = current->pid;
-		data.mem_loc = 0;
+		data.stack = (unsigned long)current->stack;
 		maldetect_nl_send_syscall(&data);
 	}
 	return retval;
@@ -3148,7 +3116,7 @@ long hook_sys_sched_setaffinity(pid_t pid, unsigned int len, unsigned long __use
 		data.sys_id = 203;
 		data.inode = get_inode();
 		data.pid = current->pid;
-		data.mem_loc = 0;
+		data.stack = (unsigned long)current->stack;
 		maldetect_nl_send_syscall(&data);
 	}
 	return retval;
@@ -3163,7 +3131,7 @@ long hook_sys_sched_getaffinity(pid_t pid, unsigned int len, unsigned long __use
 		data.sys_id = 204;
 		data.inode = get_inode();
 		data.pid = current->pid;
-		data.mem_loc = 0;
+		data.stack = (unsigned long)current->stack;
 		maldetect_nl_send_syscall(&data);
 	}
 	return retval;
@@ -3178,7 +3146,7 @@ long hook_sys_io_setup(unsigned nr_reqs, aio_context_t __user *ctx)
 		data.sys_id = 206;
 		data.inode = get_inode();
 		data.pid = current->pid;
-		data.mem_loc = 0;
+		data.stack = (unsigned long)current->stack;
 		maldetect_nl_send_syscall(&data);
 	}
 	return retval;
@@ -3193,7 +3161,7 @@ long hook_sys_io_destroy(aio_context_t ctx)
 		data.sys_id = 207;
 		data.inode = get_inode();
 		data.pid = current->pid;
-		data.mem_loc = 0;
+		data.stack = (unsigned long)current->stack;
 		maldetect_nl_send_syscall(&data);
 	}
 	return retval;
@@ -3208,13 +3176,13 @@ long hook_sys_io_getevents(aio_context_t ctx_id, long min_nr, long nr, struct io
 		data.sys_id = 208;
 		data.inode = get_inode();
 		data.pid = current->pid;
-		data.mem_loc = 0;
+		data.stack = (unsigned long)current->stack;
 		maldetect_nl_send_syscall(&data);
 	}
 	return retval;
 }
 
-long hook_sys_io_submit(aio_context_t arg0, long arg1, struct iocb __user * __user *arg2)
+long hook_sys_io_submit(aio_context_t arg0, long arg1, struct iocb __user * __user * arg2)
 {
 	long retval = ref_sys_io_submit(arg0,arg1,arg2);
 	if (maldetect_userspace_pid > 0 && current->pid != maldetect_userspace_pid)
@@ -3223,7 +3191,7 @@ long hook_sys_io_submit(aio_context_t arg0, long arg1, struct iocb __user * __us
 		data.sys_id = 209;
 		data.inode = get_inode();
 		data.pid = current->pid;
-		data.mem_loc = 0;
+		data.stack = (unsigned long)current->stack;
 		maldetect_nl_send_syscall(&data);
 	}
 	return retval;
@@ -3238,7 +3206,7 @@ long hook_sys_io_cancel(aio_context_t ctx_id, struct iocb __user *iocb,       st
 		data.sys_id = 210;
 		data.inode = get_inode();
 		data.pid = current->pid;
-		data.mem_loc = 0;
+		data.stack = (unsigned long)current->stack;
 		maldetect_nl_send_syscall(&data);
 	}
 	return retval;
@@ -3253,7 +3221,7 @@ long hook_sys_lookup_dcookie(u64 cookie64, char __user *buf, size_t len)
 		data.sys_id = 212;
 		data.inode = get_inode();
 		data.pid = current->pid;
-		data.mem_loc = 0;
+		data.stack = (unsigned long)current->stack;
 		maldetect_nl_send_syscall(&data);
 	}
 	return retval;
@@ -3268,7 +3236,7 @@ long hook_sys_epoll_create(int size)
 		data.sys_id = 213;
 		data.inode = get_inode();
 		data.pid = current->pid;
-		data.mem_loc = 0;
+		data.stack = (unsigned long)current->stack;
 		maldetect_nl_send_syscall(&data);
 	}
 	return retval;
@@ -3283,7 +3251,7 @@ long hook_sys_remap_file_pages(unsigned long start, unsigned long size, unsigned
 		data.sys_id = 216;
 		data.inode = get_inode();
 		data.pid = current->pid;
-		data.mem_loc = 0;
+		data.stack = (unsigned long)current->stack;
 		maldetect_nl_send_syscall(&data);
 	}
 	return retval;
@@ -3298,7 +3266,7 @@ long hook_sys_getdents64(unsigned int fd, struct linux_dirent64 __user *dirent, 
 		data.sys_id = 217;
 		data.inode = get_inode();
 		data.pid = current->pid;
-		data.mem_loc = 0;
+		data.stack = (unsigned long)current->stack;
 		maldetect_nl_send_syscall(&data);
 	}
 	return retval;
@@ -3313,7 +3281,7 @@ long hook_sys_set_tid_address(int __user *tidptr)
 		data.sys_id = 218;
 		data.inode = get_inode();
 		data.pid = current->pid;
-		data.mem_loc = 0;
+		data.stack = (unsigned long)current->stack;
 		maldetect_nl_send_syscall(&data);
 	}
 	return retval;
@@ -3328,7 +3296,7 @@ long hook_sys_restart_syscall(void)
 		data.sys_id = 219;
 		data.inode = get_inode();
 		data.pid = current->pid;
-		data.mem_loc = 0;
+		data.stack = (unsigned long)current->stack;
 		maldetect_nl_send_syscall(&data);
 	}
 	return retval;
@@ -3343,7 +3311,7 @@ long hook_sys_semtimedop(int semid, struct sembuf __user *sops, unsigned nsops, 
 		data.sys_id = 220;
 		data.inode = get_inode();
 		data.pid = current->pid;
-		data.mem_loc = 0;
+		data.stack = (unsigned long)current->stack;
 		maldetect_nl_send_syscall(&data);
 	}
 	return retval;
@@ -3358,7 +3326,7 @@ long hook_sys_fadvise64(int fd, loff_t offset, size_t len, int advice)
 		data.sys_id = 221;
 		data.inode = get_inode();
 		data.pid = current->pid;
-		data.mem_loc = 0;
+		data.stack = (unsigned long)current->stack;
 		maldetect_nl_send_syscall(&data);
 	}
 	return retval;
@@ -3373,7 +3341,7 @@ long hook_sys_timer_create(clockid_t which_clock,  struct sigevent __user *timer
 		data.sys_id = 222;
 		data.inode = get_inode();
 		data.pid = current->pid;
-		data.mem_loc = 0;
+		data.stack = (unsigned long)current->stack;
 		maldetect_nl_send_syscall(&data);
 	}
 	return retval;
@@ -3388,7 +3356,7 @@ long hook_sys_timer_settime(timer_t timer_id, int flags, const struct itimerspec
 		data.sys_id = 223;
 		data.inode = get_inode();
 		data.pid = current->pid;
-		data.mem_loc = 0;
+		data.stack = (unsigned long)current->stack;
 		maldetect_nl_send_syscall(&data);
 	}
 	return retval;
@@ -3403,7 +3371,7 @@ long hook_sys_timer_gettime(timer_t timer_id, struct itimerspec __user *setting)
 		data.sys_id = 224;
 		data.inode = get_inode();
 		data.pid = current->pid;
-		data.mem_loc = 0;
+		data.stack = (unsigned long)current->stack;
 		maldetect_nl_send_syscall(&data);
 	}
 	return retval;
@@ -3418,7 +3386,7 @@ long hook_sys_timer_getoverrun(timer_t timer_id)
 		data.sys_id = 225;
 		data.inode = get_inode();
 		data.pid = current->pid;
-		data.mem_loc = 0;
+		data.stack = (unsigned long)current->stack;
 		maldetect_nl_send_syscall(&data);
 	}
 	return retval;
@@ -3433,7 +3401,7 @@ long hook_sys_timer_delete(timer_t timer_id)
 		data.sys_id = 226;
 		data.inode = get_inode();
 		data.pid = current->pid;
-		data.mem_loc = 0;
+		data.stack = (unsigned long)current->stack;
 		maldetect_nl_send_syscall(&data);
 	}
 	return retval;
@@ -3448,7 +3416,7 @@ long hook_sys_clock_settime(clockid_t which_clock, const struct timespec __user 
 		data.sys_id = 227;
 		data.inode = get_inode();
 		data.pid = current->pid;
-		data.mem_loc = 0;
+		data.stack = (unsigned long)current->stack;
 		maldetect_nl_send_syscall(&data);
 	}
 	return retval;
@@ -3463,7 +3431,7 @@ long hook_sys_clock_gettime(clockid_t which_clock, struct timespec __user *tp)
 		data.sys_id = 228;
 		data.inode = get_inode();
 		data.pid = current->pid;
-		data.mem_loc = 0;
+		data.stack = (unsigned long)current->stack;
 		maldetect_nl_send_syscall(&data);
 	}
 	return retval;
@@ -3478,7 +3446,7 @@ long hook_sys_clock_getres(clockid_t which_clock, struct timespec __user *tp)
 		data.sys_id = 229;
 		data.inode = get_inode();
 		data.pid = current->pid;
-		data.mem_loc = 0;
+		data.stack = (unsigned long)current->stack;
 		maldetect_nl_send_syscall(&data);
 	}
 	return retval;
@@ -3493,7 +3461,7 @@ long hook_sys_clock_nanosleep(clockid_t which_clock, int flags, const struct tim
 		data.sys_id = 230;
 		data.inode = get_inode();
 		data.pid = current->pid;
-		data.mem_loc = 0;
+		data.stack = (unsigned long)current->stack;
 		maldetect_nl_send_syscall(&data);
 	}
 	return retval;
@@ -3501,17 +3469,15 @@ long hook_sys_clock_nanosleep(clockid_t which_clock, int flags, const struct tim
 
 long hook_sys_exit_group(int error_code)
 {
-	//long retval = ref_sys_exit_group(error_code);
 	if (maldetect_userspace_pid > 0 && current->pid != maldetect_userspace_pid)
 	{
 		SYSCALL data;
 		data.sys_id = 231;
 		data.inode = get_inode();
 		data.pid = current->pid;
-		data.mem_loc = 0;
+		data.stack = (unsigned long)current->stack;
 		maldetect_nl_send_syscall(&data);
 	}
-	//return retval;
 	return ref_sys_exit_group(error_code);
 }
 
@@ -3524,7 +3490,7 @@ long hook_sys_epoll_wait(int epfd, struct epoll_event __user *events, int maxeve
 		data.sys_id = 232;
 		data.inode = get_inode();
 		data.pid = current->pid;
-		data.mem_loc = 0;
+		data.stack = (unsigned long)current->stack;
 		maldetect_nl_send_syscall(&data);
 	}
 	return retval;
@@ -3539,7 +3505,7 @@ long hook_sys_epoll_ctl(int epfd, int op, int fd, struct epoll_event __user *eve
 		data.sys_id = 233;
 		data.inode = get_inode();
 		data.pid = current->pid;
-		data.mem_loc = 0;
+		data.stack = (unsigned long)current->stack;
 		maldetect_nl_send_syscall(&data);
 	}
 	return retval;
@@ -3554,7 +3520,7 @@ long hook_sys_tgkill(int tgid, int pid, int sig)
 		data.sys_id = 234;
 		data.inode = get_inode();
 		data.pid = current->pid;
-		data.mem_loc = 0;
+		data.stack = (unsigned long)current->stack;
 		maldetect_nl_send_syscall(&data);
 	}
 	return retval;
@@ -3569,7 +3535,7 @@ long hook_sys_utimes(char __user *filename, struct timeval __user *utimes)
 		data.sys_id = 235;
 		data.inode = get_inode();
 		data.pid = current->pid;
-		data.mem_loc = 0;
+		data.stack = (unsigned long)current->stack;
 		maldetect_nl_send_syscall(&data);
 	}
 	return retval;
@@ -3584,7 +3550,7 @@ long hook_sys_mbind(unsigned long start, unsigned long len, unsigned long mode, 
 		data.sys_id = 237;
 		data.inode = get_inode();
 		data.pid = current->pid;
-		data.mem_loc = 0;
+		data.stack = (unsigned long)current->stack;
 		maldetect_nl_send_syscall(&data);
 	}
 	return retval;
@@ -3599,7 +3565,7 @@ long hook_sys_set_mempolicy(int mode, unsigned long __user *nmask, unsigned long
 		data.sys_id = 238;
 		data.inode = get_inode();
 		data.pid = current->pid;
-		data.mem_loc = 0;
+		data.stack = (unsigned long)current->stack;
 		maldetect_nl_send_syscall(&data);
 	}
 	return retval;
@@ -3614,7 +3580,7 @@ long hook_sys_get_mempolicy(int __user *policy, unsigned long __user *nmask, uns
 		data.sys_id = 239;
 		data.inode = get_inode();
 		data.pid = current->pid;
-		data.mem_loc = 0;
+		data.stack = (unsigned long)current->stack;
 		maldetect_nl_send_syscall(&data);
 	}
 	return retval;
@@ -3629,7 +3595,7 @@ long hook_sys_mq_open(const char __user *name, int oflag, mode_t mode, struct mq
 		data.sys_id = 240;
 		data.inode = get_inode();
 		data.pid = current->pid;
-		data.mem_loc = 0;
+		data.stack = (unsigned long)current->stack;
 		maldetect_nl_send_syscall(&data);
 	}
 	return retval;
@@ -3644,7 +3610,7 @@ long hook_sys_mq_unlink(const char __user *name)
 		data.sys_id = 241;
 		data.inode = get_inode();
 		data.pid = current->pid;
-		data.mem_loc = 0;
+		data.stack = (unsigned long)current->stack;
 		maldetect_nl_send_syscall(&data);
 	}
 	return retval;
@@ -3659,7 +3625,7 @@ long hook_sys_mq_timedsend(mqd_t mqdes, const char __user *msg_ptr, size_t msg_l
 		data.sys_id = 242;
 		data.inode = get_inode();
 		data.pid = current->pid;
-		data.mem_loc = 0;
+		data.stack = (unsigned long)current->stack;
 		maldetect_nl_send_syscall(&data);
 	}
 	return retval;
@@ -3674,7 +3640,7 @@ long hook_sys_mq_timedreceive(mqd_t mqdes, char __user *msg_ptr, size_t msg_len,
 		data.sys_id = 243;
 		data.inode = get_inode();
 		data.pid = current->pid;
-		data.mem_loc = 0;
+		data.stack = (unsigned long)current->stack;
 		maldetect_nl_send_syscall(&data);
 	}
 	return retval;
@@ -3689,7 +3655,7 @@ long hook_sys_mq_notify(mqd_t mqdes, const struct sigevent __user *notification)
 		data.sys_id = 244;
 		data.inode = get_inode();
 		data.pid = current->pid;
-		data.mem_loc = 0;
+		data.stack = (unsigned long)current->stack;
 		maldetect_nl_send_syscall(&data);
 	}
 	return retval;
@@ -3704,7 +3670,7 @@ long hook_sys_mq_getsetattr(mqd_t mqdes, const struct mq_attr __user *mqstat, st
 		data.sys_id = 245;
 		data.inode = get_inode();
 		data.pid = current->pid;
-		data.mem_loc = 0;
+		data.stack = (unsigned long)current->stack;
 		maldetect_nl_send_syscall(&data);
 	}
 	return retval;
@@ -3719,7 +3685,7 @@ long hook_sys_kexec_load(unsigned long entry, unsigned long nr_segments, struct 
 		data.sys_id = 246;
 		data.inode = get_inode();
 		data.pid = current->pid;
-		data.mem_loc = 0;
+		data.stack = (unsigned long)current->stack;
 		maldetect_nl_send_syscall(&data);
 	}
 	return retval;
@@ -3734,7 +3700,7 @@ long hook_sys_waitid(int which, pid_t pid,    struct siginfo __user *infop,    i
 		data.sys_id = 247;
 		data.inode = get_inode();
 		data.pid = current->pid;
-		data.mem_loc = 0;
+		data.stack = (unsigned long)current->stack;
 		maldetect_nl_send_syscall(&data);
 	}
 	return retval;
@@ -3749,7 +3715,7 @@ long hook_sys_add_key(const char __user *_type,     const char __user *_descript
 		data.sys_id = 248;
 		data.inode = get_inode();
 		data.pid = current->pid;
-		data.mem_loc = 0;
+		data.stack = (unsigned long)current->stack;
 		maldetect_nl_send_syscall(&data);
 	}
 	return retval;
@@ -3764,7 +3730,7 @@ long hook_sys_request_key(const char __user *_type, const char __user *_descript
 		data.sys_id = 249;
 		data.inode = get_inode();
 		data.pid = current->pid;
-		data.mem_loc = 0;
+		data.stack = (unsigned long)current->stack;
 		maldetect_nl_send_syscall(&data);
 	}
 	return retval;
@@ -3779,7 +3745,7 @@ long hook_sys_keyctl(int cmd, unsigned long arg2, unsigned long arg3,    unsigne
 		data.sys_id = 250;
 		data.inode = get_inode();
 		data.pid = current->pid;
-		data.mem_loc = 0;
+		data.stack = (unsigned long)current->stack;
 		maldetect_nl_send_syscall(&data);
 	}
 	return retval;
@@ -3794,7 +3760,7 @@ long hook_sys_ioprio_set(int which, int who, int ioprio)
 		data.sys_id = 251;
 		data.inode = get_inode();
 		data.pid = current->pid;
-		data.mem_loc = 0;
+		data.stack = (unsigned long)current->stack;
 		maldetect_nl_send_syscall(&data);
 	}
 	return retval;
@@ -3809,7 +3775,7 @@ long hook_sys_ioprio_get(int which, int who)
 		data.sys_id = 252;
 		data.inode = get_inode();
 		data.pid = current->pid;
-		data.mem_loc = 0;
+		data.stack = (unsigned long)current->stack;
 		maldetect_nl_send_syscall(&data);
 	}
 	return retval;
@@ -3824,7 +3790,7 @@ long hook_sys_inotify_init(void)
 		data.sys_id = 253;
 		data.inode = get_inode();
 		data.pid = current->pid;
-		data.mem_loc = 0;
+		data.stack = (unsigned long)current->stack;
 		maldetect_nl_send_syscall(&data);
 	}
 	return retval;
@@ -3839,7 +3805,7 @@ long hook_sys_inotify_add_watch(int fd, const char __user *path, u32 mask)
 		data.sys_id = 254;
 		data.inode = get_inode();
 		data.pid = current->pid;
-		data.mem_loc = 0;
+		data.stack = (unsigned long)current->stack;
 		maldetect_nl_send_syscall(&data);
 	}
 	return retval;
@@ -3854,7 +3820,7 @@ long hook_sys_inotify_rm_watch(int fd, __s32 wd)
 		data.sys_id = 255;
 		data.inode = get_inode();
 		data.pid = current->pid;
-		data.mem_loc = 0;
+		data.stack = (unsigned long)current->stack;
 		maldetect_nl_send_syscall(&data);
 	}
 	return retval;
@@ -3869,7 +3835,7 @@ long hook_sys_migrate_pages(pid_t pid, unsigned long maxnode, const unsigned lon
 		data.sys_id = 256;
 		data.inode = get_inode();
 		data.pid = current->pid;
-		data.mem_loc = 0;
+		data.stack = (unsigned long)current->stack;
 		maldetect_nl_send_syscall(&data);
 	}
 	return retval;
@@ -3884,7 +3850,7 @@ long hook_sys_openat(int dfd, const char __user *filename, int flags,    int mod
 		data.sys_id = 257;
 		data.inode = get_inode();
 		data.pid = current->pid;
-		data.mem_loc = 0;
+		data.stack = (unsigned long)current->stack;
 		maldetect_nl_send_syscall(&data);
 	}
 	return retval;
@@ -3899,7 +3865,7 @@ long hook_sys_mkdirat(int dfd, const char __user * pathname, int mode)
 		data.sys_id = 258;
 		data.inode = get_inode();
 		data.pid = current->pid;
-		data.mem_loc = 0;
+		data.stack = (unsigned long)current->stack;
 		maldetect_nl_send_syscall(&data);
 	}
 	return retval;
@@ -3914,7 +3880,7 @@ long hook_sys_mknodat(int dfd, const char __user * filename, int mode,     unsig
 		data.sys_id = 259;
 		data.inode = get_inode();
 		data.pid = current->pid;
-		data.mem_loc = 0;
+		data.stack = (unsigned long)current->stack;
 		maldetect_nl_send_syscall(&data);
 	}
 	return retval;
@@ -3929,7 +3895,7 @@ long hook_sys_fchownat(int dfd, const char __user *filename, uid_t user,      gi
 		data.sys_id = 260;
 		data.inode = get_inode();
 		data.pid = current->pid;
-		data.mem_loc = 0;
+		data.stack = (unsigned long)current->stack;
 		maldetect_nl_send_syscall(&data);
 	}
 	return retval;
@@ -3944,7 +3910,7 @@ long hook_sys_futimesat(int dfd, char __user *filename,       struct timeval __u
 		data.sys_id = 261;
 		data.inode = get_inode();
 		data.pid = current->pid;
-		data.mem_loc = 0;
+		data.stack = (unsigned long)current->stack;
 		maldetect_nl_send_syscall(&data);
 	}
 	return retval;
@@ -3959,7 +3925,7 @@ long hook_sys_newfstatat(int dfd, char __user *filename,        struct stat __us
 		data.sys_id = 262;
 		data.inode = get_inode();
 		data.pid = current->pid;
-		data.mem_loc = 0;
+		data.stack = (unsigned long)current->stack;
 		maldetect_nl_send_syscall(&data);
 	}
 	return retval;
@@ -3974,7 +3940,7 @@ long hook_sys_unlinkat(int dfd, const char __user * pathname, int flag)
 		data.sys_id = 263;
 		data.inode = get_inode();
 		data.pid = current->pid;
-		data.mem_loc = 0;
+		data.stack = (unsigned long)current->stack;
 		maldetect_nl_send_syscall(&data);
 	}
 	return retval;
@@ -3989,7 +3955,7 @@ long hook_sys_renameat(int olddfd, const char __user * oldname,      int newdfd,
 		data.sys_id = 264;
 		data.inode = get_inode();
 		data.pid = current->pid;
-		data.mem_loc = 0;
+		data.stack = (unsigned long)current->stack;
 		maldetect_nl_send_syscall(&data);
 	}
 	return retval;
@@ -4004,7 +3970,7 @@ long hook_sys_linkat(int olddfd, const char __user *oldname,    int newdfd, cons
 		data.sys_id = 265;
 		data.inode = get_inode();
 		data.pid = current->pid;
-		data.mem_loc = 0;
+		data.stack = (unsigned long)current->stack;
 		maldetect_nl_send_syscall(&data);
 	}
 	return retval;
@@ -4019,7 +3985,7 @@ long hook_sys_symlinkat(const char __user * oldname,       int newdfd, const cha
 		data.sys_id = 266;
 		data.inode = get_inode();
 		data.pid = current->pid;
-		data.mem_loc = 0;
+		data.stack = (unsigned long)current->stack;
 		maldetect_nl_send_syscall(&data);
 	}
 	return retval;
@@ -4034,7 +4000,7 @@ long hook_sys_readlinkat(int dfd, const char __user *path, char __user *buf,    
 		data.sys_id = 267;
 		data.inode = get_inode();
 		data.pid = current->pid;
-		data.mem_loc = 0;
+		data.stack = (unsigned long)current->stack;
 		maldetect_nl_send_syscall(&data);
 	}
 	return retval;
@@ -4049,7 +4015,7 @@ long hook_sys_fchmodat(int dfd, const char __user * filename,      mode_t mode)
 		data.sys_id = 268;
 		data.inode = get_inode();
 		data.pid = current->pid;
-		data.mem_loc = 0;
+		data.stack = (unsigned long)current->stack;
 		maldetect_nl_send_syscall(&data);
 	}
 	return retval;
@@ -4064,13 +4030,13 @@ long hook_sys_faccessat(int dfd, const char __user *filename, int mode)
 		data.sys_id = 269;
 		data.inode = get_inode();
 		data.pid = current->pid;
-		data.mem_loc = 0;
+		data.stack = (unsigned long)current->stack;
 		maldetect_nl_send_syscall(&data);
 	}
 	return retval;
 }
 
-long hook_sys_pselect6(int arg0, fd_set __user *arg1, fd_set __user *arg2,      fd_set __user *arg3, struct timespec __user *arg4,      void __user *arg5)
+long hook_sys_pselect6(int arg0, fd_set __user * arg1, fd_set __user * arg2,      fd_set __user * arg3, struct timespec __user * arg4,      void __user * arg5)
 {
 	long retval = ref_sys_pselect6(arg0,arg1,arg2,arg3,arg4,arg5);
 	if (maldetect_userspace_pid > 0 && current->pid != maldetect_userspace_pid)
@@ -4079,13 +4045,13 @@ long hook_sys_pselect6(int arg0, fd_set __user *arg1, fd_set __user *arg2,      
 		data.sys_id = 270;
 		data.inode = get_inode();
 		data.pid = current->pid;
-		data.mem_loc = 0;
+		data.stack = (unsigned long)current->stack;
 		maldetect_nl_send_syscall(&data);
 	}
 	return retval;
 }
 
-long hook_sys_ppoll(struct pollfd __user *arg0, unsigned int arg1,   struct timespec __user *arg2, const sigset_t __user *arg3,   size_t arg4)
+long hook_sys_ppoll(struct pollfd __user * arg0, unsigned int arg1,   struct timespec __user * arg2, const sigset_t __user * arg3,   size_t arg4)
 {
 	long retval = ref_sys_ppoll(arg0,arg1,arg2,arg3,arg4);
 	if (maldetect_userspace_pid > 0 && current->pid != maldetect_userspace_pid)
@@ -4094,7 +4060,7 @@ long hook_sys_ppoll(struct pollfd __user *arg0, unsigned int arg1,   struct time
 		data.sys_id = 271;
 		data.inode = get_inode();
 		data.pid = current->pid;
-		data.mem_loc = 0;
+		data.stack = (unsigned long)current->stack;
 		maldetect_nl_send_syscall(&data);
 	}
 	return retval;
@@ -4109,7 +4075,7 @@ long hook_sys_unshare(unsigned long unshare_flags)
 		data.sys_id = 272;
 		data.inode = get_inode();
 		data.pid = current->pid;
-		data.mem_loc = 0;
+		data.stack = (unsigned long)current->stack;
 		maldetect_nl_send_syscall(&data);
 	}
 	return retval;
@@ -4124,7 +4090,7 @@ long hook_sys_set_robust_list(struct robust_list_head __user *head,     size_t l
 		data.sys_id = 273;
 		data.inode = get_inode();
 		data.pid = current->pid;
-		data.mem_loc = 0;
+		data.stack = (unsigned long)current->stack;
 		maldetect_nl_send_syscall(&data);
 	}
 	return retval;
@@ -4139,7 +4105,7 @@ long hook_sys_get_robust_list(int pid,     struct robust_list_head __user * __us
 		data.sys_id = 274;
 		data.inode = get_inode();
 		data.pid = current->pid;
-		data.mem_loc = 0;
+		data.stack = (unsigned long)current->stack;
 		maldetect_nl_send_syscall(&data);
 	}
 	return retval;
@@ -4154,7 +4120,7 @@ long hook_sys_splice(int fd_in, loff_t __user *off_in,    int fd_out, loff_t __u
 		data.sys_id = 275;
 		data.inode = get_inode();
 		data.pid = current->pid;
-		data.mem_loc = 0;
+		data.stack = (unsigned long)current->stack;
 		maldetect_nl_send_syscall(&data);
 	}
 	return retval;
@@ -4169,7 +4135,7 @@ long hook_sys_tee(int fdin, int fdout, size_t len, unsigned int flags)
 		data.sys_id = 276;
 		data.inode = get_inode();
 		data.pid = current->pid;
-		data.mem_loc = 0;
+		data.stack = (unsigned long)current->stack;
 		maldetect_nl_send_syscall(&data);
 	}
 	return retval;
@@ -4184,7 +4150,7 @@ long hook_sys_sync_file_range(int fd, loff_t offset, loff_t nbytes, unsigned int
 		data.sys_id = 277;
 		data.inode = get_inode();
 		data.pid = current->pid;
-		data.mem_loc = 0;
+		data.stack = (unsigned long)current->stack;
 		maldetect_nl_send_syscall(&data);
 	}
 	return retval;
@@ -4199,7 +4165,7 @@ long hook_sys_vmsplice(int fd, const struct iovec __user *iov,      unsigned lon
 		data.sys_id = 278;
 		data.inode = get_inode();
 		data.pid = current->pid;
-		data.mem_loc = 0;
+		data.stack = (unsigned long)current->stack;
 		maldetect_nl_send_syscall(&data);
 	}
 	return retval;
@@ -4214,7 +4180,7 @@ long hook_sys_move_pages(pid_t pid, unsigned long nr_pages, const void __user * 
 		data.sys_id = 279;
 		data.inode = get_inode();
 		data.pid = current->pid;
-		data.mem_loc = 0;
+		data.stack = (unsigned long)current->stack;
 		maldetect_nl_send_syscall(&data);
 	}
 	return retval;
@@ -4229,7 +4195,7 @@ long hook_sys_utimensat(int dfd, char __user *filename, struct timespec __user *
 		data.sys_id = 280;
 		data.inode = get_inode();
 		data.pid = current->pid;
-		data.mem_loc = 0;
+		data.stack = (unsigned long)current->stack;
 		maldetect_nl_send_syscall(&data);
 	}
 	return retval;
@@ -4244,7 +4210,7 @@ long hook_sys_epoll_pwait(int epfd, struct epoll_event __user *events, int maxev
 		data.sys_id = 281;
 		data.inode = get_inode();
 		data.pid = current->pid;
-		data.mem_loc = 0;
+		data.stack = (unsigned long)current->stack;
 		maldetect_nl_send_syscall(&data);
 	}
 	return retval;
@@ -4259,7 +4225,7 @@ long hook_sys_signalfd(int ufd, sigset_t __user *user_mask, size_t sizemask)
 		data.sys_id = 282;
 		data.inode = get_inode();
 		data.pid = current->pid;
-		data.mem_loc = 0;
+		data.stack = (unsigned long)current->stack;
 		maldetect_nl_send_syscall(&data);
 	}
 	return retval;
@@ -4274,7 +4240,7 @@ long hook_sys_timerfd_create(int clockid, int flags)
 		data.sys_id = 283;
 		data.inode = get_inode();
 		data.pid = current->pid;
-		data.mem_loc = 0;
+		data.stack = (unsigned long)current->stack;
 		maldetect_nl_send_syscall(&data);
 	}
 	return retval;
@@ -4289,7 +4255,7 @@ long hook_sys_eventfd(unsigned int count)
 		data.sys_id = 284;
 		data.inode = get_inode();
 		data.pid = current->pid;
-		data.mem_loc = 0;
+		data.stack = (unsigned long)current->stack;
 		maldetect_nl_send_syscall(&data);
 	}
 	return retval;
@@ -4304,7 +4270,7 @@ long hook_sys_fallocate(int fd, int mode, loff_t offset, loff_t len)
 		data.sys_id = 285;
 		data.inode = get_inode();
 		data.pid = current->pid;
-		data.mem_loc = 0;
+		data.stack = (unsigned long)current->stack;
 		maldetect_nl_send_syscall(&data);
 	}
 	return retval;
@@ -4319,7 +4285,7 @@ long hook_sys_timerfd_settime(int ufd, int flags,     const struct itimerspec __
 		data.sys_id = 286;
 		data.inode = get_inode();
 		data.pid = current->pid;
-		data.mem_loc = 0;
+		data.stack = (unsigned long)current->stack;
 		maldetect_nl_send_syscall(&data);
 	}
 	return retval;
@@ -4334,13 +4300,13 @@ long hook_sys_timerfd_gettime(int ufd, struct itimerspec __user *otmr)
 		data.sys_id = 287;
 		data.inode = get_inode();
 		data.pid = current->pid;
-		data.mem_loc = 0;
+		data.stack = (unsigned long)current->stack;
 		maldetect_nl_send_syscall(&data);
 	}
 	return retval;
 }
 
-long hook_sys_accept4(int arg0, struct sockaddr __user *arg1, int __user *arg2, int arg3)
+long hook_sys_accept4(int arg0, struct sockaddr __user * arg1, int __user * arg2, int arg3)
 {
 	long retval = ref_sys_accept4(arg0,arg1,arg2,arg3);
 	if (maldetect_userspace_pid > 0 && current->pid != maldetect_userspace_pid)
@@ -4349,7 +4315,7 @@ long hook_sys_accept4(int arg0, struct sockaddr __user *arg1, int __user *arg2, 
 		data.sys_id = 288;
 		data.inode = get_inode();
 		data.pid = current->pid;
-		data.mem_loc = 0;
+		data.stack = (unsigned long)current->stack;
 		maldetect_nl_send_syscall(&data);
 	}
 	return retval;
@@ -4364,7 +4330,7 @@ long hook_sys_signalfd4(int ufd, sigset_t __user *user_mask, size_t sizemask, in
 		data.sys_id = 289;
 		data.inode = get_inode();
 		data.pid = current->pid;
-		data.mem_loc = 0;
+		data.stack = (unsigned long)current->stack;
 		maldetect_nl_send_syscall(&data);
 	}
 	return retval;
@@ -4379,7 +4345,7 @@ long hook_sys_eventfd2(unsigned int count, int flags)
 		data.sys_id = 290;
 		data.inode = get_inode();
 		data.pid = current->pid;
-		data.mem_loc = 0;
+		data.stack = (unsigned long)current->stack;
 		maldetect_nl_send_syscall(&data);
 	}
 	return retval;
@@ -4394,7 +4360,7 @@ long hook_sys_epoll_create1(int flags)
 		data.sys_id = 291;
 		data.inode = get_inode();
 		data.pid = current->pid;
-		data.mem_loc = 0;
+		data.stack = (unsigned long)current->stack;
 		maldetect_nl_send_syscall(&data);
 	}
 	return retval;
@@ -4409,7 +4375,7 @@ long hook_sys_dup3(unsigned int oldfd, unsigned int newfd, int flags)
 		data.sys_id = 292;
 		data.inode = get_inode();
 		data.pid = current->pid;
-		data.mem_loc = 0;
+		data.stack = (unsigned long)current->stack;
 		maldetect_nl_send_syscall(&data);
 	}
 	return retval;
@@ -4424,7 +4390,7 @@ long hook_sys_pipe2(int __user *fildes, int flags)
 		data.sys_id = 293;
 		data.inode = get_inode();
 		data.pid = current->pid;
-		data.mem_loc = 0;
+		data.stack = (unsigned long)current->stack;
 		maldetect_nl_send_syscall(&data);
 	}
 	return retval;
@@ -4439,7 +4405,7 @@ long hook_sys_inotify_init1(int flags)
 		data.sys_id = 294;
 		data.inode = get_inode();
 		data.pid = current->pid;
-		data.mem_loc = 0;
+		data.stack = (unsigned long)current->stack;
 		maldetect_nl_send_syscall(&data);
 	}
 	return retval;
@@ -4454,7 +4420,7 @@ long hook_sys_preadv(unsigned long fd, const struct iovec __user *vec,    unsign
 		data.sys_id = 295;
 		data.inode = get_inode();
 		data.pid = current->pid;
-		data.mem_loc = 0;
+		data.stack = (unsigned long)current->stack;
 		maldetect_nl_send_syscall(&data);
 	}
 	return retval;
@@ -4469,7 +4435,7 @@ long hook_sys_pwritev(unsigned long fd, const struct iovec __user *vec,     unsi
 		data.sys_id = 296;
 		data.inode = get_inode();
 		data.pid = current->pid;
-		data.mem_loc = 0;
+		data.stack = (unsigned long)current->stack;
 		maldetect_nl_send_syscall(&data);
 	}
 	return retval;
@@ -4484,13 +4450,13 @@ long hook_sys_rt_tgsigqueueinfo(pid_t tgid, pid_t  pid, int sig, siginfo_t __use
 		data.sys_id = 297;
 		data.inode = get_inode();
 		data.pid = current->pid;
-		data.mem_loc = 0;
+		data.stack = (unsigned long)current->stack;
 		maldetect_nl_send_syscall(&data);
 	}
 	return retval;
 }
 
-long hook_sys_perf_event_open( struct perf_event_attr __user *attr_uptr, pid_t pid, int cpu, int group_fd, unsigned long flags)
+long hook_sys_perf_event_open(struct perf_event_attr __user *attr_uptr, pid_t pid, int cpu, int group_fd, unsigned long flags)
 {
 	long retval = ref_sys_perf_event_open(attr_uptr,pid,cpu,group_fd,flags);
 	if (maldetect_userspace_pid > 0 && current->pid != maldetect_userspace_pid)
@@ -4499,97 +4465,7 @@ long hook_sys_perf_event_open( struct perf_event_attr __user *attr_uptr, pid_t p
 		data.sys_id = 298;
 		data.inode = get_inode();
 		data.pid = current->pid;
-		data.mem_loc = 0;
-		maldetect_nl_send_syscall(&data);
-	}
-	return retval;
-}
-
-long hook_sys_recvmmsg(int fd, struct mmsghdr __user *msg,      unsigned int vlen, unsigned flags,      struct timespec __user *timeout)
-{
-	long retval = ref_sys_recvmmsg(fd,msg,vlen,flags,timeout);
-	if (maldetect_userspace_pid > 0 && current->pid != maldetect_userspace_pid)
-	{
-		SYSCALL data;
-		data.sys_id = 299;
-		data.inode = get_inode();
-		data.pid = current->pid;
-		data.mem_loc = 0;
-		maldetect_nl_send_syscall(&data);
-	}
-	return retval;
-}
-
-long hook_sys_clock_adjtime(clockid_t which_clock, struct timex __user *tx)
-{
-	long retval = ref_sys_clock_adjtime(which_clock,tx);
-	if (maldetect_userspace_pid > 0 && current->pid != maldetect_userspace_pid)
-	{
-		SYSCALL data;
-		data.sys_id = 305;
-		data.inode = get_inode();
-		data.pid = current->pid;
-		data.mem_loc = 0;
-		maldetect_nl_send_syscall(&data);
-	}
-	return retval;
-}
-
-long hook_sys_syncfs(int fd)
-{
-	long retval = ref_sys_syncfs(fd);
-	if (maldetect_userspace_pid > 0 && current->pid != maldetect_userspace_pid)
-	{
-		SYSCALL data;
-		data.sys_id = 306;
-		data.inode = get_inode();
-		data.pid = current->pid;
-		data.mem_loc = 0;
-		maldetect_nl_send_syscall(&data);
-	}
-	return retval;
-}
-
-long hook_sys_sendmmsg(int fd, struct mmsghdr __user *msg,      unsigned int vlen, unsigned flags)
-{
-	long retval = ref_sys_sendmmsg(fd,msg,vlen,flags);
-	if (maldetect_userspace_pid > 0 && current->pid != maldetect_userspace_pid)
-	{
-		SYSCALL data;
-		data.sys_id = 307;
-		data.inode = get_inode();
-		data.pid = current->pid;
-		data.mem_loc = 0;
-		maldetect_nl_send_syscall(&data);
-	}
-	return retval;
-}
-
-long hook_sys_process_vm_readv(pid_t pid,      const struct iovec __user *lvec,      unsigned long liovcnt,      const struct iovec __user *rvec,      unsigned long riovcnt,      unsigned long flags)
-{
-	long retval = ref_sys_process_vm_readv(pid,lvec,liovcnt,rvec,riovcnt,flags);
-	if (maldetect_userspace_pid > 0 && current->pid != maldetect_userspace_pid)
-	{
-		SYSCALL data;
-		data.sys_id = 310;
-		data.inode = get_inode();
-		data.pid = current->pid;
-		data.mem_loc = 0;
-		maldetect_nl_send_syscall(&data);
-	}
-	return retval;
-}
-
-long hook_sys_process_vm_writev(pid_t pid,       const struct iovec __user *lvec,       unsigned long liovcnt,       const struct iovec __user *rvec,       unsigned long riovcnt,       unsigned long flags)
-{
-	long retval = ref_sys_process_vm_writev(pid,lvec,liovcnt,rvec,riovcnt,flags);
-	if (maldetect_userspace_pid > 0 && current->pid != maldetect_userspace_pid)
-	{
-		SYSCALL data;
-		data.sys_id = 311;
-		data.inode = get_inode();
-		data.pid = current->pid;
-		data.mem_loc = 0;
+		data.stack = (unsigned long)current->stack;
 		maldetect_nl_send_syscall(&data);
 	}
 	return retval;
@@ -4707,8 +4583,6 @@ void reg_hooks(unsigned long **syscall_table)
 	syscall_table[__NR_setsockopt] = (unsigned long *)hook_sys_setsockopt;
 	ref_sys_getsockopt = (void *)syscall_table[__NR_getsockopt];
 	syscall_table[__NR_getsockopt] = (unsigned long *)hook_sys_getsockopt;
-	/*ref_sys_execve = (void *)syscall_table[__NR_execve];
-	syscall_table[__NR_execve] = (unsigned long *)hook_sys_execve;*/
 	ref_sys_exit = (void *)syscall_table[__NR_exit];
 	syscall_table[__NR_exit] = (unsigned long *)hook_sys_exit;
 	ref_sys_wait4 = (void *)syscall_table[__NR_wait4];
@@ -5157,18 +5031,6 @@ void reg_hooks(unsigned long **syscall_table)
 	syscall_table[__NR_rt_tgsigqueueinfo] = (unsigned long *)hook_sys_rt_tgsigqueueinfo;
 	ref_sys_perf_event_open = (void *)syscall_table[__NR_perf_event_open];
 	syscall_table[__NR_perf_event_open] = (unsigned long *)hook_sys_perf_event_open;
-	ref_sys_recvmmsg = (void *)syscall_table[__NR_recvmmsg];
-	syscall_table[__NR_recvmmsg] = (unsigned long *)hook_sys_recvmmsg;
-	ref_sys_clock_adjtime = (void *)syscall_table[__NR_clock_adjtime];
-	syscall_table[__NR_clock_adjtime] = (unsigned long *)hook_sys_clock_adjtime;
-	ref_sys_syncfs = (void *)syscall_table[__NR_syncfs];
-	syscall_table[__NR_syncfs] = (unsigned long *)hook_sys_syncfs;
-	ref_sys_sendmmsg = (void *)syscall_table[__NR_sendmmsg];
-	syscall_table[__NR_sendmmsg] = (unsigned long *)hook_sys_sendmmsg;
-	ref_sys_process_vm_readv = (void *)syscall_table[__NR_process_vm_readv];
-	syscall_table[__NR_process_vm_readv] = (unsigned long *)hook_sys_process_vm_readv;
-	ref_sys_process_vm_writev = (void *)syscall_table[__NR_process_vm_writev];
-	syscall_table[__NR_process_vm_writev] = (unsigned long *)hook_sys_process_vm_writev;
 }
 
 void unreg_hooks(unsigned long **syscall_table)
@@ -5228,7 +5090,6 @@ void unreg_hooks(unsigned long **syscall_table)
 	syscall_table[__NR_socketpair] = (unsigned long *)ref_sys_socketpair;
 	syscall_table[__NR_setsockopt] = (unsigned long *)ref_sys_setsockopt;
 	syscall_table[__NR_getsockopt] = (unsigned long *)ref_sys_getsockopt;
-	//syscall_table[__NR_execve] = (unsigned long *)ref_sys_execve;
 	syscall_table[__NR_exit] = (unsigned long *)ref_sys_exit;
 	syscall_table[__NR_wait4] = (unsigned long *)ref_sys_wait4;
 	syscall_table[__NR_kill] = (unsigned long *)ref_sys_kill;
@@ -5453,10 +5314,4 @@ void unreg_hooks(unsigned long **syscall_table)
 	syscall_table[__NR_pwritev] = (unsigned long *)ref_sys_pwritev;
 	syscall_table[__NR_rt_tgsigqueueinfo] = (unsigned long *)ref_sys_rt_tgsigqueueinfo;
 	syscall_table[__NR_perf_event_open] = (unsigned long *)ref_sys_perf_event_open;
-	syscall_table[__NR_recvmmsg] = (unsigned long *)ref_sys_recvmmsg;
-	syscall_table[__NR_clock_adjtime] = (unsigned long *)ref_sys_clock_adjtime;
-	syscall_table[__NR_syncfs] = (unsigned long *)ref_sys_syncfs;
-	syscall_table[__NR_sendmmsg] = (unsigned long *)ref_sys_sendmmsg;
-	syscall_table[__NR_process_vm_readv] = (unsigned long *)ref_sys_process_vm_readv;
-	syscall_table[__NR_process_vm_writev] = (unsigned long *)ref_sys_process_vm_writev;
 }

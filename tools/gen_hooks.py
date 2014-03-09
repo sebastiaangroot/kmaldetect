@@ -225,7 +225,7 @@ def get_hookfunctions(functpointers, con_unistd):
 			hook += '\t\tdata.sys_id = %s;\n' % sysid
 			hook += '\t\tdata.inode = get_inode();\n'
 			hook += '\t\tdata.pid = current->pid;\n'
-			hook += '\t\tdata.mem_loc = NULL;\n'
+			hook += '\t\tdata.stack = (unsigned long)current->stack;\n'
 			hook += '\t\tmaldetect_nl_send_syscall(&data);\n'
 			hook += '\t}\n'
 			hook += '\treturn %s(%s);\n' % (refname, plainargs)
@@ -241,7 +241,7 @@ def get_hookfunctions(functpointers, con_unistd):
 			hook += '\t\tdata.sys_id = %s;\n' % sysid
 			hook += '\t\tdata.inode = get_inode();\n'
 			hook += '\t\tdata.pid = current->pid;\n'
-			hook += '\t\tdata.mem_loc = NULL;\n'
+			hook += '\t\tdata.stack = (unsigned long)current->stack;\n'
 			hook += '\t\tmaldetect_nl_send_syscall(&data);\n'
 			hook += '\t}\n'
 			hook += '\treturn retval;\n'
