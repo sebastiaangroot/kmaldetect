@@ -29,6 +29,8 @@ int *set_branches = NULL;
 int *state_counter = NULL;
 int *malicious_match = NULL;
 
+int e_reached = 0;
+
 static void update_syscall_encoding_table(int state)
 {
 	int i, j;
@@ -91,8 +93,9 @@ void print_match(ENDSTATE endstate)
 {
 	printf("Found match for %s!\n", endstate.filename);
 	printf("Metadata from the last calls:\n");
-	calculate_winner();
-	flush_logger();
+	e_reached = 1;
+	//calculate_winner();
+	//flush_logger();
 	//print_metadata(endstate.state);
 	//print_metadata_very_verbose();
 }
@@ -191,6 +194,8 @@ void read_syscalls_from_file(char *filename)
 		handle_input(&syscall);
 		count++;
 	}
+	if (e_reached)
+		calculate_winner();
 	malfree(file_buffer);
 }
 

@@ -150,8 +150,8 @@ void pair_quicksort(PAIR *array, int n)
 		right = n-1;
 		while (left <= right)
 		{
-			while (array[left].score < pivot.score) left++;
-			while (array[right].score > pivot.score) right--;
+			while (array[left].score > pivot.score) left++;
+			while (array[right].score < pivot.score) right--;
 			if (left <= right)
 			{
 				swp = array[left];
