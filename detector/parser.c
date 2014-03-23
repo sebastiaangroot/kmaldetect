@@ -92,6 +92,7 @@ void print_match(ENDSTATE endstate)
 	printf("Found match for %s!\n", endstate.filename);
 	printf("Metadata from the last calls:\n");
 	calculate_winner();
+	flush_logger();
 	//print_metadata(endstate.state);
 	//print_metadata_very_verbose();
 }
