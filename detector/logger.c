@@ -138,6 +138,34 @@ void ulong_add_key(PAIR **pairs, int *n, unsigned long key)
 	*n = *n + 1;
 }
 
+void pair_quicksort(PAIR *array, int n)
+{
+	PAIR pivot, swp;
+	int right, left;
+	
+	if (n > 1)
+	{
+		pivot = array[0];
+		left = 0;
+		right = n-1;
+		while (left <= right)
+		{
+			while (array[left].score < pivot.score) left++;
+			while (array[right].score > pivot.score) right--;
+			if (left <= right)
+			{
+				swp = array[left];
+				array[left] = array[right];
+				array[right] = swp;
+				left++;
+				right--;
+			}
+		}
+		pair_quicksort(array, right+1);
+		pair_quicksort(array+left, n - left);
+	}
+}
+
 void calculate_winner(void)
 {
 	PAIR *scores = NULL;
@@ -165,6 +193,9 @@ void calculate_winner(void)
 			scores[j].n = 0; //Reset for the next i iteration
 		}
 	}
+	
+	//Quicksort in place
+	pair_quicksort(scores, scores_n);
 	
 	for (i = 0; i < scores_n; i++)
 	{
