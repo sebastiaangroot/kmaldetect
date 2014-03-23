@@ -149,10 +149,10 @@ void calculate_winner(void)
 	for (i = 0; i < tm_states_len; i++)
 	{
 		//Amount of occurences per state
-		for (j = 0; j < pids[i].p; j++)
+		for (j = 0; j < inodes[i].p; j++)
 		{
-			while ((ind = ulong_get_index(scores, scores_n, pids[i].pids[j])) == -1)
-				ulong_add_key(&scores, &scores_n, pids[i].pids[j]);
+			while ((ind = ulong_get_index(scores, scores_n, inodes[i].ulongs[j])) == -1)
+				ulong_add_key(&scores, &scores_n, inodes[i].ulongs[j]);
 			
 			if (scores[ind].n == 0)
 				unique_this_state++;
