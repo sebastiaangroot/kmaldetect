@@ -144,7 +144,6 @@ void calculate_winner(void)
 	int scores_n = 0;
 	int i, j;
 	int ind;
-	int unique_this_state = 0;
 	
 	for (i = 0; i < tm_states_len; i++)
 	{
@@ -153,9 +152,6 @@ void calculate_winner(void)
 		{
 			while ((ind = ulong_get_index(scores, scores_n, inodes[i].ulongs[j])) == -1)
 				ulong_add_key(&scores, &scores_n, inodes[i].ulongs[j]);
-			
-			if (scores[ind].n == 0)
-				unique_this_state++;
 
 			scores[ind].n++;
 		}
@@ -164,11 +160,10 @@ void calculate_winner(void)
 		{
 			if (scores[j].n != 0)
 			{
-				scores[j].score += (double)(scores[j].n) / (double)unique_this_state;
+				scores[j].score += (double)(scores[j].n) / (double)inodes[i].p;
 			}
 			scores[j].n = 0; //Reset for the next i iteration
 		}
-		unique_this_state = 0;
 	}
 	
 	for (i = 0; i < scores_n; i++)
