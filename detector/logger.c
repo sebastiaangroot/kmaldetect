@@ -18,6 +18,18 @@ struct list
 };
 typedef struct list LIST;
 
+struct pair
+{
+	union {
+		pid_t key_pid;
+		unsigned long key_ulong;
+	};
+	
+	double score;
+	int n;
+};
+typedef struct pair PAIR;
+
 LIST *inodes = NULL;
 LIST *memlocs = NULL;
 LIST *pids = NULL;
@@ -107,6 +119,63 @@ struct counter
 		}
 	}
 }*/
+
+int ulong_get_index(PAIR *pairs, int n, unsigned long key)
+{
+	int i;
+	for (i = 0; i < n; i++)
+		if (pairs[i].key_ulong == key)
+			return i;
+	return -1;
+}
+
+void ulong_add_key(PAIR **pairs, int *n, unsigned long key)
+{
+	*pairs = malrealloc(*pairs, sizeof(PAIR) * (*n+1));
+	*pairs[*n].key_ulong = key;
+	*pairs[*n].n = 0;
+	*pairs[*n].score = 0;
+	*n = *n + 1;
+}
+
+void calculate_winner(void)
+{
+	PAIR *scores;
+	int scores_n = 0;
+	int i, j;
+	int ind;
+	int unique_this_state = 0;
+	
+	for (i = 0; i < tm_states_len; i++)
+	{
+		//Amount of occurences per state
+		for (j = 0; j < pids[i].p; j++)
+		{
+			while ((ind = ulong_get_index(scores, scores_n, pids[i].pids[j])) == -1)
+				ulong_add_key(&scores, &scores_n, pids[i].pids[j]);
+			
+			if (scores[ind].n == 0)
+				unique_this_state++;
+
+			scores[ind].n++;
+		}
+		//Percentage scores per state
+		for (j = 0; j < scores_n; j++)
+		{
+			if (scores[j].n != 0)
+			{
+				scores[j].score += (double)(scores[j].n) / (double)unique_this_state;
+			}
+			scores[j].n = 0; //Reset for the next i iteration
+		}
+		unique_this_state = 0;
+	}
+	
+	for (i = 0; i < scores_n; i++)
+	{
+		printf("Inode: %lu\tScore: %.2L\n", scores[i].key_ulong, scores[i].score);
+	}
+}
 
 void print_metadata_very_verbose(void)
 {
