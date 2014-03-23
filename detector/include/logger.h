@@ -8,5 +8,6 @@ extern void print_metadata_very_verbose(void);
 extern void init_logger(void);
 extern void store_metadata(SYSCALL *sys, int state);
 extern void flush_logger(void);
+extern void calculate_winner(void);
 
 #endif
