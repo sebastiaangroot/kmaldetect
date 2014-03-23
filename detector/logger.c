@@ -132,9 +132,9 @@ int ulong_get_index(PAIR *pairs, int n, unsigned long key)
 void ulong_add_key(PAIR **pairs, int *n, unsigned long key)
 {
 	*pairs = malrealloc(*pairs, sizeof(PAIR) * (*n+1));
-	*pairs[*n].key_ulong = key;
-	*pairs[*n].n = 0;
-	*pairs[*n].score = 0;
+	(*pairs)[*n].key_ulong = key;
+	(*pairs)[*n].n = 0;
+	(*pairs)[*n].score = 0;
 	*n = *n + 1;
 }
 
