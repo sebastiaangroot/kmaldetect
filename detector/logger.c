@@ -173,7 +173,7 @@ void calculate_winner(void)
 	
 	for (i = 0; i < scores_n; i++)
 	{
-		printf("Inode: %lu\tScore: %.2L\n", scores[i].key_ulong, scores[i].score);
+		printf("Inode: %lu\tScore: %.2f\n", scores[i].key_ulong, scores[i].score);
 	}
 }
 
