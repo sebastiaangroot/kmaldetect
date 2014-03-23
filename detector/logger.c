@@ -140,7 +140,7 @@ void ulong_add_key(PAIR **pairs, int *n, unsigned long key)
 
 void calculate_winner(void)
 {
-	PAIR *scores;
+	PAIR *scores = NULL;
 	int scores_n = 0;
 	int i, j;
 	int ind;
