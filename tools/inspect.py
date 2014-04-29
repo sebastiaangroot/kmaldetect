@@ -71,11 +71,11 @@ def get_inode_stats(trace, inode):
 		return		
 
 	print('PID occurrences:')
-	for pid in pid_freqs.keys():
+	for pid in sorted(pid_freqs, key=pid_freqs.get, reverse=True):
 		print('   %s = %i' % (pid, pid_freqs[pid]))
 
 	print('Syscall occurrences:')
-	for sys in sys_freqs.keys():
+	for sys in sorted(sys_freqs, key=sys_freqs.get, reverse=True):
 		print('   %s = %i' % (sys, sys_freqs[sys]))
 
 def get_pid_stats(trace, pid):
@@ -101,10 +101,10 @@ def get_pid_stats(trace, pid):
 		return
 	
 	print('Inode occurrences:')
-	for inode in inode_freqs.keys():
+	for inode in sorted(inode_freqs, key=inode_freqs.get, reverse=True):
 		print('   %s = %i' % (inode, inode_freqs[inode]))
 	print('Syscall occurrences:')
-	for sys in sys_freqs.keys():
+	for sys in sorted(sys_freqs, key=sys_freqs.get, reverse=True):
 		print('   %s = %i' % (sys, sys_freqs[sys]))
 
 def get_both_stats(trace, pid, inode):
@@ -123,7 +123,7 @@ def get_both_stats(trace, pid, inode):
 		return
 
 	print('Syscall occurences:')
-	for sys in sys_freqs.keys():
+	for sys in sorted(sys_freqs, key=sys_freqs.get, reverse=True):
 		print('   %s = %i' % (sys, sys_freqs[sys]))
 
 def print_pids(trace):
