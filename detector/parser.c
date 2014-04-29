@@ -106,6 +106,7 @@ void update_state_counter(int state)
 	state_counter[state]++;
 	if ((i = get_endstate(state)) != -1)
 	{
+		//Backtrace with a -1 on every state counter. Each state that gets to 0 gets removed from the syscall_encoding_table
 		memset(state_counter, 0, sizeof(int) * tm_states_len);
 		malicious_match[i]++;
 		if (malicious_match[i] >= 2)
