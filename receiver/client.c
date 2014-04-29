@@ -38,7 +38,7 @@ int main(void)
 	struct iovec iov;
 	int sock_fd;
 	struct msghdr msg;
-	block_lim = 64;
+	block_lim = 4;
 
 	//Check if we're running as root
 	if (getuid() != 0)
