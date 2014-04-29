@@ -23,7 +23,6 @@ class Record:
 		self.memloc = int(raw[3])
 
 def get_from_pid(trace, pid):
-	format = 's\x3As\x3As\x3As'
 	syscall = Record(sys_ids)
 
 	for item in trace:
