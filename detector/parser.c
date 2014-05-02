@@ -26,8 +26,7 @@ ENDSTATE *endstates = NULL; //The endstates, with their number and filename
 int endstates_len = 0;
 int **syscall_encoding_table = NULL;
 int *set_branches = NULL;
-int *state_counter = NULL;
-int *malicious_match = NULL;
+int *transition_count = 1;
 
 int e_reached = 0;
 
@@ -103,16 +102,14 @@ void print_match(ENDSTATE endstate)
 void update_state_counter(int state)
 {
 	int i;
-	state_counter[state]++;
-	if ((i = get_endstate(state)) != -1)
+	
+	transition_count[state]++;
+	if (get_endstate(state) != -1)
 	{
-		//Backtrace with a -1 on every state counter. Each state that gets to 0 gets removed from the syscall_encoding_table
-		memset(state_counter, 0, sizeof(int) * tm_states_len);
-		malicious_match[i]++;
-		if (malicious_match[i] >= 2)
+		e_reached = 1;
+		for (i = state, i > 1; i--)
 		{
-			print_match(endstates[i]);
-			malicious_match[i] = 0;
+			transition_count[i]--;
 		}
 	}
 }
@@ -125,11 +122,16 @@ static void handle_input(SYSCALL *syscall)
 	branch_lim = set_branches[syscall->sys_id];
 	for (i = 0; i < branch_lim; i++)
 	{
+		//Could this call possibly go somewhere?
 		if ((state = syscall_encoding_table[syscall->sys_id][i]) != 0)
 		{
-			update_syscall_encoding_table(state);
-			store_metadata(syscall, state);
-			update_state_counter(state);
+			//Can this state even be reached?
+			if (transition_count[state-1] != 0)
+			{
+				//update_syscall_encoding_table(state);
+				store_metadata(syscall, state);
+				update_state_counter(state);
+			}
 		}
 	}
 }
@@ -202,17 +204,27 @@ void read_syscalls_from_file(char *filename)
 
 void init_parser(void)
 {
-	int i;
-	state_counter = malcalloc(tm_states_len, sizeof(int));
-	malicious_match = malcalloc(endstates_len, sizeof(int));
+	int i, j;
 	syscall_encoding_table = malcalloc(NUM_SYSCALLS, sizeof(int *));
 	set_branches = malcalloc(NUM_SYSCALLS, sizeof(int));
+	transition_count = malcalloc(tm_states_len, sizeof(int));
 
+	//Building the syscall_encoding_table
 	for (i = 0; i < NUM_SYSCALLS; i++)
 	{
-		syscall_encoding_table[i] = malcalloc(1, sizeof(int));
-		syscall_encoding_table[i][0] = transition_matrix[1][i]; //Our syscall_encoding_table will start with the same redirection-data as is in transition_matrix's state 1
-		set_branches[i] = 1; //We've allocated sizeof(int) * 1, so we only have 1 redirect for each given syscall. set_branches will increment if there are more paths for a syscall to follow
+		for (j = 0; j < tm_states_len; j++)
+		{
+			if (transition_matrix[j][i] != 0)
+			{
+				set_branches[i]++;
+				malrealloc(syscall_encoding_table, sizeof(int) * set_branches[i]);
+				syscall_encoding_table[i][set_branches[i]-1] = transition_matrix[j][i];
+			}
+		}
 	}
-	 init_logger();
+	
+	//Enable state 1
+	transition_count[1] = 1;
+	
+	init_logger();
 }
