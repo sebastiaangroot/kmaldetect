@@ -26,7 +26,7 @@ ENDSTATE *endstates = NULL; //The endstates, with their number and filename
 int endstates_len = 0;
 int **syscall_encoding_table = NULL;
 int *set_branches = NULL;
-int *transition_count = 1;
+int *transition_count = NULL;
 
 int e_reached = 0;
 
@@ -107,7 +107,7 @@ void update_state_counter(int state)
 	if (get_endstate(state) != -1)
 	{
 		e_reached = 1;
-		for (i = state, i > 1; i--)
+		for (i = state; i > 1; i--)
 		{
 			transition_count[i]--;
 		}
@@ -217,7 +217,7 @@ void init_parser(void)
 			if (transition_matrix[j][i] != 0)
 			{
 				set_branches[i]++;
-				malrealloc(syscall_encoding_table, sizeof(int) * set_branches[i]);
+				syscall_encoding_table[i] = malrealloc(syscall_encoding_table[i], sizeof(int) * set_branches[i]);
 				syscall_encoding_table[i][set_branches[i]-1] = transition_matrix[j][i];
 			}
 		}

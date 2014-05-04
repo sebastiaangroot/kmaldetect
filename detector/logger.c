@@ -180,12 +180,12 @@ void calculate_winner(void)
 		{
 			while ((ind = ulong_get_index(scores, scores_n, inodes[i].ulongs[j])) == -1)
 			{
-				printf("[%i]inode %lu not yet registered, creating\n", i, inodes[i].ulongs[j]);
+				//printf("[%i]inode %lu not yet registered, creating\n", i, inodes[i].ulongs[j]);
 				ulong_add_key(&scores, &scores_n, inodes[i].ulongs[j]);
 			}
 
 			scores[ind].n++;
-			printf("[%i]inode %lu now at %i\n", i, inodes[i].ulongs[j], scores[ind].n);
+			//printf("[%i]inode %lu now at %i\n", i, inodes[i].ulongs[j], scores[ind].n);
 		}
 		//Percentage scores per state
 		for (j = 0; j < scores_n; j++)
@@ -193,7 +193,7 @@ void calculate_winner(void)
 			if (scores[j].n != 0)
 			{
 				scores[j].score += (double)(scores[j].n) / (double)inodes[i].p;
-				printf("[%i]Score of inode %lu at state %i now at %.2f\n", i, scores[j].key_ulong, i, scores[j].score);
+				//printf("[%i]Score of inode %lu at state %i now at %.2f\n", i, scores[j].key_ulong, i, scores[j].score);
 			}
 			scores[j].n = 0; //Reset for the next i iteration
 		}
