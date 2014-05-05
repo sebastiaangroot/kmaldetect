@@ -16,6 +16,7 @@
 
 extern int block_lim;
 
+extern int write_blocks_to_file(void);
 extern int mm_init(void);
 extern int store_syscall(SYSCALL *input);
 
