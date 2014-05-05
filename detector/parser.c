@@ -17,57 +17,44 @@
 #include <sys/stat.h>
 #include "util.h"
 #include "parser.h"
+#include "logger.h"
 
 int **transition_matrix = NULL; //The rule tree we use to traverse a the signatures
 int **reverse_transition_matrix = NULL;
 int tm_states_len = 0;
 ENDSTATE *endstates = NULL; //The endstates, with their number and filename
 int endstates_len = 0;
-SYSCALL *syscalls = NULL; //The list containing all handled syscalls
-int syscalls_len = 0;
 int **syscall_encoding_table = NULL;
 int *set_branches = NULL;
+int *transition_count = NULL;
 
-static void update_syscall_encoding_table(int state)
+int e_reached = 0;
+
+/* Returns an index for the endstates array for a corrosponding endstate */
+int get_endstate(int state)
 {
-	int i, j;
-	int duplicate;
-
-	//For each syscall
-	for (i = 0; i < NUM_SYSCALLS; i++)
+	int i;
+	for (i = 0; i < endstates_len; i++)
 	{
-		//We ignore it if it leads to zero
-		if (transition_matrix[state][i] == 0)
+		if (state == endstates[i].state)
 		{
-			continue;
+			return i;
 		}
+	}
+	return -1;
+}
 
-		//We check if we've already defined this transition
-		duplicate = 0;
-		for (j = 0; j < set_branches[i]; j++)
+void update_state_counter(int state)
+{
+	int i;
+	
+	transition_count[state]++;
+	if (get_endstate(state) != -1)
+	{
+		e_reached = 1;
+		for (i = state; i > 1; i--)
 		{
-			if (transition_matrix[state][i] == syscall_encoding_table[i][j])
-			{
-				duplicate = 1;
-				break;
-			}
-		}
-
-		//If this is a new transition
-		if (!duplicate)
-		{
-			//If we defined nothing but the zero state, overwrite it
-			if (syscall_encoding_table[i][0] == 0)
-			{
-				syscall_encoding_table[i][0] = transition_matrix[state][i];
-			}
-			//Otherwise, increase the size in syscall_encoding_table[i] and append it
-			else
-			{
-				syscall_encoding_table[i] = realloc(syscall_encoding_table[i], (set_branches[i] + 1) * sizeof(int));
-				syscall_encoding_table[i][set_branches[i]] = transition_matrix[state][i];
-				set_branches[i]++;
-			}
+			transition_count[i]--;
 		}
 	}
 }
@@ -80,41 +67,17 @@ static void handle_input(SYSCALL *syscall)
 	branch_lim = set_branches[syscall->sys_id];
 	for (i = 0; i < branch_lim; i++)
 	{
+		//Could this call possibly go somewhere?
 		if ((state = syscall_encoding_table[syscall->sys_id][i]) != 0)
 		{
-			update_syscall_encoding_table(state);
-			if (syscall->states_len == 0)
+			//Can this state even be reached?
+			if (transition_count[state-1] != 0)
 			{
-				syscall->states = malcalloc(1, sizeof(int));
-				syscall->states[0] = state;
-				syscall->states_len = 1;
-			}
-			else
-			{
-				syscall->states = malrealloc(syscall->states, (syscall->states_len + 1) * sizeof(int));
-				syscall->states[syscall->states_len] = state;
-				syscall->states_len++;
+				//update_syscall_encoding_table(state);
+				store_metadata(syscall, state);
+				update_state_counter(state);
 			}
 		}
-	}
-
-	//No states were reached, we're not saving this syscall
-	if (syscall->states_len == 0)
-	{
-		return;
-	}
-
-	if (syscalls_len == 0)
-	{
-		syscalls = malcalloc(1, sizeof(SYSCALL));
-		memcpy(syscalls, syscall, sizeof(SYSCALL));
-		syscalls_len = 1;
-	}
-	else
-	{
-		syscalls = malrealloc(syscalls, (syscalls_len + 1) * sizeof(SYSCALL));
-		memcpy(&syscalls[syscalls_len], syscall, sizeof(SYSCALL));
-		syscalls_len++;
 	}
 }
 
@@ -126,7 +89,7 @@ void read_syscalls_from_file(char *filename)
 	char *file_buffer;
 	long file_buffer_p;
 	struct stat st;
-	int num_syscalls, count, percentage, showedstatus;
+	int num_syscalls, count;
 
 	stat(filename, &st);
 	num_syscalls = (unsigned long)(st.st_size / BYTES_PER_SYSCALL);
@@ -146,8 +109,6 @@ void read_syscalls_from_file(char *filename)
 	file_buffer = malmalloc(sizeof(char) * (st.st_size));
 	file_buffer_p = read(fd, file_buffer, st.st_size);
 	cur = 0;
-	
-	printf("Reading %s: ", filename);
 
 	while (cur < file_buffer_p)
 	{
@@ -180,80 +141,35 @@ void read_syscalls_from_file(char *filename)
 		syscall.states_len = 0;
 		handle_input(&syscall);
 		count++;
-
-		percentage = (int)(((double)count / (double)num_syscalls) * 100);
-		if (percentage % 10 == 0 && percentage != 0 && !showedstatus)
-		{
-			showedstatus = 1;
-			//printf("Progress: %i%%\n", percentage);
-			printf(".");
-		}
-		else if (percentage % 10 != 0)
-		{
-			showedstatus = 0;
-		}
 	}
-	printf(" done.\n");
+	if (e_reached)
+		calculate_winner();
 	malfree(file_buffer);
-}
-
-void remove_syscall(int i)
-{
-	memmove(syscalls + (sizeof(SYSCALL) * i), syscalls + (sizeof(SYSCALL) * (i + 1)), (syscalls_len - i - 1) * sizeof(SYSCALL));
-	syscalls_len--;
-}
-
-void keep_duplicates(void)
-{
-	int i, j, k, l;
-	int duplicate;
-
-	printf("SYSCALLS_LEN PRE-FILTER: %i\n", syscalls_len);
-
-	for (i = 0; i < syscalls_len; i++)
-	{
-		duplicate = 0;
-		printf("Progress: %i / %i\n", i, syscalls_len);
-		for (j = 0; j < syscalls_len; j++)
-		{
-			if (i == j)
-				continue;
-
-			if (syscalls[i].sys_id == syscalls[j].sys_id && (syscalls[i].pid == syscalls[j].pid || syscalls[i].inode == syscalls[j].inode))
-			{
-				for (k = 0; k < syscalls[i].states_len; k++)
-				{
-					for (l = 0; l < syscalls[j].states_len; l++)
-					{
-						if (syscalls[i].states[k] == syscalls[j].states[l])
-						{
-							duplicate = 1;
-						}
-					}
-				}
-			}
-		}
-		if (!duplicate)
-		{
-			remove_syscall(i);
-			i--;
-		}
-	}
-
-	printf("SYSCALLS_LEN POST-FILTER: %i\n", syscalls_len);
 }
 
 void init_parser(void)
 {
-	int i;
-
+	int i, j;
 	syscall_encoding_table = malcalloc(NUM_SYSCALLS, sizeof(int *));
 	set_branches = malcalloc(NUM_SYSCALLS, sizeof(int));
+	transition_count = malcalloc(tm_states_len, sizeof(int));
 
+	//Building the syscall_encoding_table
 	for (i = 0; i < NUM_SYSCALLS; i++)
 	{
-		syscall_encoding_table[i] = malcalloc(1, sizeof(int));
-		syscall_encoding_table[i][0] = transition_matrix[1][i]; //Our syscall_encoding_table will start with the same redirection-data as is in transition_matrix's state 1
-		set_branches[i] = 1; //We've allocated sizeof(int) * 1, so we only have 1 redirect for each given syscall. set_branches will increment if there are more paths for a syscall to follow
+		for (j = 0; j < tm_states_len; j++)
+		{
+			if (transition_matrix[j][i] != 0)
+			{
+				set_branches[i]++;
+				syscall_encoding_table[i] = malrealloc(syscall_encoding_table[i], sizeof(int) * set_branches[i]);
+				syscall_encoding_table[i][set_branches[i]-1] = transition_matrix[j][i];
+			}
+		}
 	}
+	
+	//Enable state 1
+	transition_count[1] = 1;
+	
+	init_logger();
 }

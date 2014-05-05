@@ -21,6 +21,15 @@
 #include <pwd.h>
 #include <sched.h>
 
+#include <signal.h>
+
+static volatile int running = 1;
+
+void exit_handler(void)
+{
+	running = 0;
+} 
+
 /*
 * - Check if we're root
 * - Set our scheduler to the soft-realtime round robin scheduler
@@ -30,6 +39,7 @@
 * - Send the message "maldetect-syn" and wait for the message "kmaldetect-ack"
 * - Keep listening for mesages that send a SYSCALL struct, and upon receiving them, store them using the mm.c's functions
 * */
+
 extern int block_lim;
 int main(void)
 {
@@ -38,7 +48,7 @@ int main(void)
 	struct iovec iov;
 	int sock_fd;
 	struct msghdr msg;
-	block_lim = 1024;
+	block_lim = 32;
 
 	//Check if we're running as root
 	if (getuid() != 0)
@@ -66,6 +76,8 @@ int main(void)
 		fprintf(stderr, "Failed to initialize the memory manager.\n");
 		exit(1);
 	}
+
+	signal(SIGINT, exit_handler);
 
 	sock_fd = socket(AF_NETLINK, SOCK_DGRAM, NETLINK_MALDETECT);
 
@@ -105,7 +117,7 @@ int main(void)
 	printf("Received message: %s\n", (char *)NLMSG_DATA(nlh));
 	memset(NLMSG_DATA(nlh), 0, strlen((char *)NLMSG_DATA(nlh)));
 
-	while (1)
+	while (running)
 	{
 		recvmsg(sock_fd, &msg, 0);
 		SYSCALL *data = (SYSCALL *)NLMSG_DATA(nlh);
@@ -113,6 +125,11 @@ int main(void)
 		store_syscall(data);
 		memset(NLMSG_DATA(nlh), 0, sizeof(SYSCALL));
 	}
+
+	/* store_syscall normally calls exit() when its limit is reached after flushing blocks to file.
+	 * In case a SIGINT is received, write_blocks_to_file is called here 
+	 */
+	write_blocks_to_file();
 
 	return 0;
 }
