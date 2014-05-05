@@ -49,12 +49,6 @@ int maldetect_nl_send_syscall(SYSCALL *msg)
 	return 0;
 }
 
-/* Once we've established connection with the userspace application, we do nothing with incomming traffic */
-static void recv_msg_dummy(struct sk_buff *skb)
-{
-	/* Intentionally left blank */
-}
-
 /* Initial setup of a connection with the userspace application. todo: create an error-recovery method for the connection  */
 static void recv_msg(struct sk_buff *skb)
 {
@@ -106,8 +100,6 @@ static void recv_msg(struct sk_buff *skb)
 	}
 
 	maldetect_userspace_pid = pid;
-	//netlink_kernel_release(nl_sk);
-	//nl_sk = netlink_kernel_create(&init_net, NETLINK_MALDETECT, 0, recv_msg_dummy, NULL, THIS_MODULE);
 
 	mutex_unlock(&maldetect_nl_mutex);
 	printk(KERN_INFO "[kmaldetect] Set ulevel pid to %i\n", maldetect_userspace_pid);
