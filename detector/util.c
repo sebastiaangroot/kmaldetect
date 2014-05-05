@@ -52,39 +52,3 @@ void malfree(void *ptr)
 		free(ptr);
 	}
 }
-
-#include "util.h"
-extern int **transition_matrix;
-extern int tm_states_len;
-void dbg_print_transition_matrix(void)
-{
-	int i, j;
-	for (i = 0; i < tm_states_len; i++)
-	{
-		printf("[%i]:{", i);
-		for (j = 0; j < NUM_SYSCALLS; j++)
-		{
-			if (!j)
-			{
-				printf("%i", transition_matrix[i][j]);
-			}
-			else
-			{
-				printf(",%i", transition_matrix[i][j]);
-			}
-		}
-		printf("}\n");
-	}
-}
-
-#include "parser.h"
-extern ENDSTATE *endstates;
-extern int endstates_len;
-void dbg_print_endstates(void)
-{
-	int i;
-	for (i = 0; i < endstates_len; i++)
-	{
-		printf("Endstate %i:\n\tState: %i\n\tFilename: %s\n", i, endstates[i].state, endstates[i].filename);
-	}
-}

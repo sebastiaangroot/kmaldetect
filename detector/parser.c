@@ -30,50 +30,6 @@ int *transition_count = NULL;
 
 int e_reached = 0;
 
-static void update_syscall_encoding_table(int state)
-{
-	int i, j;
-	int duplicate;
-
-	//For each syscall
-	for (i = 0; i < NUM_SYSCALLS; i++)
-	{
-		//We ignore it if it leads to zero
-		if (transition_matrix[state][i] == 0)
-		{
-			continue;
-		}
-
-		//We check if we've already defined this transition
-		duplicate = 0;
-		for (j = 0; j < set_branches[i]; j++)
-		{
-			if (transition_matrix[state][i] == syscall_encoding_table[i][j])
-			{
-				duplicate = 1;
-				break;
-			}
-		}
-
-		//If this is a new transition
-		if (!duplicate)
-		{
-			//If we defined nothing but the zero state, overwrite it
-			if (syscall_encoding_table[i][0] == 0)
-			{
-				syscall_encoding_table[i][0] = transition_matrix[state][i];
-			}
-			//Otherwise, increase the size in syscall_encoding_table[i] and append it
-			else
-			{
-				syscall_encoding_table[i] = realloc(syscall_encoding_table[i], (set_branches[i] + 1) * sizeof(int));
-				syscall_encoding_table[i][set_branches[i]] = transition_matrix[state][i];
-				set_branches[i]++;
-			}
-		}
-	}
-}
-
 /* Returns an index for the endstates array for a corrosponding endstate */
 int get_endstate(int state)
 {
@@ -86,17 +42,6 @@ int get_endstate(int state)
 		}
 	}
 	return -1;
-}
-
-void print_match(ENDSTATE endstate)
-{
-	//printf("Found match for %s!\n", endstate.filename);
-	//printf("Metadata from the last calls:\n");
-	e_reached = 1;
-	//calculate_winner();
-	//flush_logger();
-	//print_metadata(endstate.state);
-	//print_metadata_very_verbose();
 }
 
 void update_state_counter(int state)

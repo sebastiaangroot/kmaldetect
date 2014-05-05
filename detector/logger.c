@@ -74,29 +74,6 @@ void store_metadata(SYSCALL *sys, int state)
 	store_pid(sys->pid, state);
 }
 
-void print_metadata(int state)
-{
-	int i;
-
-	printf("Inodes:\n");
-	for (i = 0; i < inodes[state].p; i++)
-	{
-		printf("\t%lu\n", inodes[state].ulongs[i]);
-	}
-
-	printf("\nMemlocs:\n");
-	for (i = 0; i < memlocs[state].p; i++)
-	{
-		printf("\t%lu\n", memlocs[state].ulongs[i]);
-	}
-
-	printf("\nFound pids:\n");
-	for (i = 0; i < pids[state].p; i++)
-	{
-		printf("\t%i\n", pids[state].pids[i]);
-	}
-}
-
 struct counter
 {
 	union {
@@ -105,20 +82,6 @@ struct counter
 	};
 	int counter;
 };
-
-/*void print_metadata_verbose(void)
-{
-	int i, j;
-	int least_recorded[5];
-	int lr_p = 0;
-	struct counter most_common[5];
-	while (lr_p < 5)
-	{
-		for (i = 0; i < tm_states_len; i++)
-		{
-		}
-	}
-}*/
 
 int ulong_get_index(PAIR *pairs, int n, unsigned long key)
 {
@@ -205,38 +168,6 @@ void calculate_winner(void)
 	for (i = 0; i < scores_n; i++)
 	{
 		printf("Inode: %lu\tScore: %.2f\n", scores[i].key_ulong, scores[i].score);
-	}
-}
-
-void print_metadata_very_verbose(void)
-{
-	int i, j;
-	
-	printf("Inodes:");
-	for (i = 0; i < tm_states_len; i++)
-	{
-		for (j = 0; j < inodes[i].p; j++)
-		{
-			printf("\t%lu\n", inodes[i].ulongs[j]);
-		}
-	}
-
-	printf("\nMemlocs:\n");
-	for (i = 0; i < tm_states_len; i++)
-	{
-		for (j = 0; j < memlocs[i].p; j++)
-		{
-			printf("\t%lu\n", memlocs[i].ulongs[j]);
-		}
-	}
-
-	printf("\nPids:\n");
-	for (i = 0; i < tm_states_len; i++)
-	{
-		for (j = 0; j < pids[i].p; j++)
-		{
-			printf("\t%i\n", pids[i].pids[j]);
-		}
 	}
 }
 
