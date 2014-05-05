@@ -10,6 +10,10 @@ def listify(str):
 def main():
 	global sys
 
+	if len(sys.argv) != 1:
+		print('Usage: Pipe a list of system calls into the stdin of %s\nFormat example: open,lseek,read,write,close,' % sys.argv[0])
+		return
+	
 	syscall_list = listify(sys.stdin.readline())
 	output = ''
 	
